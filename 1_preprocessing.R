@@ -94,13 +94,29 @@ data %<>%
   filter(text %>% str_count("\\S+") <= 4) %>%
   distinct(skill_id, skill_label, .keep_all = TRUE)
 
+
+data %>% pull(skill_label) %>% n_distinct()
+  
+  
+test <- data %>% 
+  semi_join(text_tidy, by = c('text' = 'term'))
+
+
 test <- text_tidy %>% 
   inner_join(data, by = c('term' = 'text'))
 
 test %>% pull(job_id) %>% n_distinct()
 
 test %>%
-  filter(skill_green == TRUE) %>%
+  #filter(skill_green == TRUE) %>%
   distinct(job_id, skill_label) %>%
   count(skill_label, sort = TRUE) %>%
   print(n = 50)
+
+
+test <- text_tidy %>% 
+  anti_join(data, by = c('term' = 'text'))
+
+test %>% count(term, sort = TRUE)
+#### Glove embeddings
+
