@@ -14,7 +14,8 @@ library(future.apply)
 library(progressr)
 
 # Load stilling descriptions ----
-files = '../data/stillinger_2018_tekst.csv'
+files = list.files(path = '../Original data/csv/stillinger_tekst_data')
+files<-paste('../Original data/csv/stillinger_tekst_data/',files,sep="")
 data <- read_delim(files[1], locale = locale(encoding = "UTF-8"),delim=";")
 
 colnames(data) <- gsub(pattern=" ",replacement = "_",colnames(data))
@@ -26,28 +27,23 @@ for(i in 2:length(files))
   print(i)
   help <- read_delim(files[i], locale = locale(encoding = "UTF-8"), delim=";")
   colnames(help)<-gsub(pattern=" ",replacement = "_",colnames(help))
-  if(files[i]=="../Data/full_texts/stillinger_2021_01_06_uten_FINN.csv" | files[i]=="../Data/full_texts/stillinger_2021_07_12_uten_FINN.csv")
-    {
-    help <- help %>% mutate(Stilling_Id=(i*1000000+1:nrow(help))) %>% rename(Stillingsnummer_nav_no=Lk_Stilling_Uuid)
+  if(files[i]=="../Original data/csv/stillinger_tekst_data/stillinger_2021_01_06_uten_FINN.csv" | files[i]=="../Original data/csv/stillinger_tekst_data/stillinger_2021_07_12_uten_FINN.csv")
+  {
+    help <- help %>% rename(Stilling_Id=Lk_Stilling_Uuid)
     help <- help %>% select(-Sensitiv_Status,-Stilling_kilde_kode)
-    }
+  }
   help <- help %>% mutate(Stilling_Id=as.character(Stilling_Id))
   help$year_post<-substr(files[i],55,58)
   data <- bind_rows(data,help)
 }
 
-colnames(data) <- c('id','stillingsnummer', 'jobb_tittel','text',"year_org")
+colnames(data) <- c('Stillingsnummer_nav_no','Stilling.id', 'jobb_tittel','text',"year_org")
 rm(help)
-# Some basic data adaptation and cleaning ----
-# correct that sometimes stillingsnummer and id are switched
 
-data <- data %>% mutate(prob=ifelse(grepl(x=id,pattern="-")==T,1,0))
-data <- data %>% mutate(id1=ifelse(prob==0,stillingsnummer,id),
-                        stillingsnummer=ifelse(prob==0,id,stillingsnummer),
-                        id=id1) %>% select(-id1)
-
-data <- data %>% filter(is.na(stillingsnummer)==F)
-
+data <- data %>% mutate(prob=ifelse(grepl(x=Stillingsnummer_nav_no,pattern="-")==T & is.na(Stillingsnummer_nav_no)==T,1,0))
+data <- data %>% mutate(Stilling.id =ifelse(prob==0,Stillingsnummer_nav_no,Stilling.id))
+data <- data %>% select(-Stillingsnummer_nav_no)
+data <- data %>% filter(is.na(Stilling.id)==F)
 
 # Remove non-norwegian languages ----
 data <- data %>% mutate(language=detect_language(text))
