@@ -12,14 +12,13 @@ library(magrittr)
 # NLP
 library(tidytext)
 library(spacyr)
-# spacy_download_langmodel("nb")
+# spacy_install()  # Do the first time to install in a miniconda
+# spacy_download_langmodel("nb") # Download norwegian model
 spacy_initialize('nb_core_news_sm')
 
-# library(udpipe)
-# ud_model_no <- udpipe_download_model(language = "norwegian-bokmaal", model_dir = '../data/models')
+library(future.apply)
+library(progressr)
 
-# ud_model_no <- udpipe_load_model(file = "../data/models/norwegian-bokmaal-ud-2.5-191206.udpipe")
-# text_test1 <-  udpipe_annotate(ud_model_no, x =  text_test$text, doc_id =  text_test$job_id, parser = 'none') %>% as_tibble() 
 
 ###########################################################################################
 ########################### some functions
@@ -100,7 +99,7 @@ skill_labels <- data %>%
   filter(text %>% str_count("\\S+") <= 4) %>%
   distinct(skill_id, text, .keep_all = TRUE) %>%
   left_join(data %>% select(-text), by = 'skill_id') %>%
-  select(skill_id, skill_label, text, skill_green, skill_id)
+  select(skill_id, skill_label, text, skill_green, skill_it)
 
 skill_vocab <- skill_labels %>%
   select(text) %>% 
@@ -120,40 +119,30 @@ skill_labels <- read_rds('../temp/skill_labels.rds')
 skill_vocab <- read_rds('../temp/skill_vocab.rds')
 
 # Load stilling descriptions ----
-year = 2018
+var_year = '2020'
 
-files = paste0('../data/job_postings/stillinger_', year, '_tekst.csv')
-
-data <- read_delim(files[1], locale = locale(encoding = "UTF-8"),delim=";")
+#files = paste0('../data/job_postings/stillinger_', year, '_tekst.csv')
+#data <- read_delim(files[1], locale = locale(encoding = "UTF-8"),delim=";")
 #n = 1000; data <- data[1:n,] 
 
-colnames(data) <- c('id','job_id', 'job_titel','job_text')
+data <- read_rds('../data/job_postings/dat_text_clean.rds')
 
-# Some basic data adaptation and cleaning 
-data %<>% 
-  mutate(job_id = job_id %>% as.character()) %>%
-  # correct that sometimes stillingsnummer and id are switched
-  mutate(prob = ifelse(grepl( x = id, pattern = "-") == T, 1, 0),
-         id1 = ifelse(prob == 0, job_id, id),
-         job_id = ifelse(prob == 0, id, job_id),
-         id = id1) %>% 
-  # merged text field
+colnames(data) <- c('job_id', 'job_titel','job_text', 'year', 'prob', 'language')
+
+# filter for year to do it sequentially
+data %<>% filter(year == var_year,
+                 language == "no") %>%
   mutate(text = paste(job_titel, job_text, sep = '. ')) %>%
-  drop_na(job_id, text) %>%
-  select(job_id, text) %>%
-  distinct(job_id, .keep_all = TRUE)
-  
-# Remove non-norwegian languages -
-data %<>% mutate(language = text %>% cld2::detect_language()) %>% 
-  filter(language == "no") %>%
-  select(-language)
+  select(job_id, text)
+
+# # Remove non-norwegian languages -
+# data %<>% mutate(language = text %>% cld2::detect_language()) %>% 
+#   filter(language == "no") %>%
+#   select(-language)
 
 # multicore processing
 cores=detectCores()
 n_iter = 1000
-
-library(future.apply)
-library(progressr)
 
 handlers(global = TRUE)
 handlers("progress")
@@ -172,29 +161,23 @@ with_progress({
 
 job_skills <- data.table::rbindlist(dfs)
 
-job_skills %>% saveRDS(paste0('../temp/list_skills_', year, '.rds'))
+job_skills %>% mutate(year = var_year)
+job_skills %>% saveRDS(paste0('../temp/list_skills_', var_year, '.rds'))
+rm(dfs)
 
+spacy_finalize()
 
-### EDA
-job_skills %>% pull(job_id) %>% n_distinct()
-  
+# Some basic data adaptation and cleaning 
 
-test <- text_tidy %>% 
-  inner_join(data, by = c('term' = 'text'))
-
-test %>% pull(job_id) %>% n_distinct()
-
-test %>%
-  #filter(skill_green == TRUE) %>%
-  distinct(job_id, skill_label) %>%
-  count(skill_label, sort = TRUE) %>%
-  print(n = 50)
-
-
-test <- text_tidy %>% 
-  anti_join(data, by = c('term' = 'text'))
-
-test %>% count(term, sort = TRUE)
-
-
-# spacy_finalize()
+#  data %<>% 
+#  mutate(job_id = job_id %>% as.character()) %>%
+#  # correct that sometimes stillingsnummer and id are switched
+#  mutate(prob = ifelse(grepl( x = id, pattern = "-") == T, 1, 0),
+#         id1 = ifelse(prob == 0, job_id, id),
+#         job_id = ifelse(prob == 0, id, job_id),
+#         id = id1) %>% 
+#  # merged text field
+#  mutate(text = paste(job_titel, job_text, sep = '. ')) %>%
+#  drop_na(job_id, text) %>%
+#  select(job_id, text) %>%
+#  distinct(job_id, .keep_all = TRUE)
