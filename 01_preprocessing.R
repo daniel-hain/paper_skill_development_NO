@@ -17,12 +17,12 @@ library(tidytext)
 # spacy_initialize('nb_core_news_sm')
 
 library(udpipe)
-udmodel_no <- udpipe_download_model(language = "norwegian-bokmaal")
-udmodel_no %>% saveRDS('../data/udmodel_no.rds')
-udmodel <- udpipe_load_model(file = '../data/udmodel_no.rds')
+#udpipe_download_model(language = "norwegian-bokmaal", model_dir ='../data/models', overwrite = TRUE)
+udmodel_no <- udpipe_load_model(file = '../data/models/norwegian-bokmaal-ud-2.5-191206.udpipe')
 
 library(future.apply)
 library(progressr)
+
 ###########################################################################################
 ########################### some functions
 ###########################################################################################
@@ -50,18 +50,34 @@ lemmatize_spacy <- function(x, stopwords = tidytext::stop_words, vocab = NULL){
     anti_join(stopwords, by = c('lemma' = 'word')) 
   
   if(!is.null(vocab)){x <- x %>% semi_join(vocab, by = c('lemma' = 'word')) }
-
+  
   x %>%
     group_by(doc_id) %>% 
     summarise(text  = paste(lemma, collapse =" ")) 
 }
 
-# function to 
+# Function to do the lemmatization
+lemmatize_ud <- function(x, stopwords = tidytext::stop_words, vocab = NULL){
+  # requires columns: doc_id, text
+  x <- udpipe_annotate(object = udmodel_no, x = x$text, doc_id = x$doc_id, tagger = "default", parser = "none") %>% 
+    as.data.frame() %>% 
+    select(doc_id, lemma) %>%
+    as_tibble() %>%
+    anti_join(stopwords, by = c('lemma' = 'word')) 
+  
+  if(!is.null(vocab)){x <- x %>% semi_join(vocab, by = c('lemma' = 'word')) }
+  
+  x %>%
+    group_by(doc_id) %>% 
+    summarise(text  = paste(lemma, collapse =" ")) 
+}
+
+# function to wrapp all
 process_skills <-function(data){
   data %>% select(job_id, text) %>% 
     mutate(text = text %>% text_preprocess() ) %>%
     rename(doc_id = job_id) %>%
-    lemmatize_spacy(stopwords = stopwords_no, vocab = skill_vocab) %>%
+    lemmatize_ud(stopwords = stopwords_no, vocab = skill_vocab) %>%
     rename(job_id = doc_id) %>%
     unnest_ngrams(word, text, ngram_delim = ' ', n_min = 1, n = 4) %>%
     inner_join(skill_labels %>% select(text, skill_label), by = c('word' = 'text'))
@@ -96,8 +112,8 @@ skill_labels <- data %>%
   group_by(skill_id) %>%
   mutate(doc_id = paste(skill_id, 1:n(), sep = '|')) %>%
   ungroup() %>%
-  mutate(text = text %>% text_preprocess() ) %>%
-  lemmatize_spacy(stopwords = stopwords_no) %>%
+  mutate(text = text %>% text_preprocess()) %>%
+  lemmatize_ud(stopwords = stopwords_no) %>%
   mutate(skill_id = doc_id %>% str_remove('\\|.*')) %>%
   filter(text %>% str_count("\\S+") <= 4) %>%
   distinct(skill_id, text, .keep_all = TRUE) %>%
@@ -111,7 +127,7 @@ skill_vocab <- skill_labels %>%
 
 skill_labels %>% saveRDS('../temp/skill_labels.rds')
 skill_vocab %>% saveRDS('../temp/skill_vocab.rds')
-  
+
 rm(data)
 
 ###########################################################################################
@@ -127,31 +143,23 @@ skill_labels %<>%
   rename(text = word) %>%
   distinct()
 
-
-
-
-#files = paste0('../data/job_postings/stillinger_', year, '_tekst.csv')
-#data <- read_delim(files[1], locale = locale(encoding = "UTF-8"),delim=";")
-#n = 1000; data <- data[1:n,] 
-
-data <- read_rds('../data/job_postings/dat_text_clean.rds')
+data <- read_rds('../data/dat_text_clean.rds')
 colnames(data) <- c('job_id', 'job_titel','job_text', 'year', 'prob', 'language')
 
 
-year_range <- c(2002:2021)
+year_range <- c(2002:2020)
 
 for (i in length(year_range)) {
   
   var_year = year_range[i]
   
   # filter for year to do it sequentially
-  data_year <- data %>% filter(year == var_year,
-                               language == "no") %>%
+  data_year <- data %>% filter(year == var_year, language == "no") %>%
     mutate(text = paste(job_titel, job_text, sep = '. ')) %>%
     select(job_id, text)
   
   # multicore processing
-  cores= parallel::detectCores() - 1
+  cores= parallel::detectCores()
   n_iter = 1000
   
   handlers(global = TRUE)
