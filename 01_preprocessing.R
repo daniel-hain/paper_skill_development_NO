@@ -11,15 +11,18 @@ library(magrittr)
 
 # NLP
 library(tidytext)
-library(spacyr)
+# library(spacyr)
 # spacy_install()  # Do the first time to install in a miniconda
 # spacy_download_langmodel("nb") # Download norwegian model
-spacy_initialize('nb_core_news_sm')
+# spacy_initialize('nb_core_news_sm')
+
+library(udpipe)
+udmodel_no <- udpipe_download_model(language = "norwegian-bokmaal")
+udmodel_no %>% saveRDS('../data/udmodel_no.rds')
+udmodel <- udpipe_load_model(file = '../data/udmodel_no.rds')
 
 library(future.apply)
 library(progressr)
-
-
 ###########################################################################################
 ########################### some functions
 ###########################################################################################

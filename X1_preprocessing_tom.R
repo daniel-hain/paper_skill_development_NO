@@ -13,6 +13,14 @@ library(data.table)
 library(future.apply)
 library(progressr)
 
+
+library(udpipe)
+udmodel_no <- udpipe_download_model(language = "norwegian-bokmaal")
+udmodel_no %>% saveRDS('../data/udmodel_no.rds')
+
+udmodel <- udpipe_load_model(file = '../data/udmodel_no.rds')
+
+
 # Load stilling descriptions ----
 files = list.files(path = '../Original data/csv/stillinger_tekst_data')
 files<-paste('../Original data/csv/stillinger_tekst_data/',files,sep="")

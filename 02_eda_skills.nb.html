@@ -2922,18 +2922,25 @@ library(magrittr) # For advanced piping</code></pre>
 <!-- rnb-text-begin -->
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxueWVhciA9IDIwMThcbmBgYCJ9 -->
-<pre class="r"><code>year = 2018</code></pre>
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxudmFyX3llYXIgPSAnMjAyMSdcbmBgYCJ9 -->
+<pre class="r"><code>var_year = &#39;2021&#39;</code></pre>
 <!-- rnb-source-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuZGF0YSA8LSByZWFkX3JkcyhwYXN0ZTAoJy4uL3RlbXAvbGlzdF9za2lsbHNfJywgeWVhciwgJy5yZHMnKSkgJT4lXG4gIG11dGF0ZSh5ZWFyID0geWVhcikgJT4lXG4gIGxlZnRfam9pbihza2lsbF9sYWJlbHMsIGJ5ID0gJ3NraWxsX2xhYmVsJylcbmBgYCJ9 -->
-<pre class="r"><code>data &lt;- read_rds(paste0(&#39;../temp/list_skills_&#39;, year, &#39;.rds&#39;)) %&gt;%
-  mutate(year = year) %&gt;%
-  left_join(skill_labels, by = &#39;skill_label&#39;)</code></pre>
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuZGF0YSAlPD4lIGxlZnRfam9pbihza2lsbF9sYWJlbHMsIGJ5ID0gJ3NraWxsX2xhYmVsJylcblxuYGBgIn0= -->
+<pre class="r"><code>data %&lt;&gt;% left_join(skill_labels, by = &#39;skill_label&#39;)
+</code></pre>
 <!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiRXJyb3IgaW4gYGxlZnRfam9pbigpYDpcbiEgSm9pbiBjb2x1bW5zIG11c3QgYmUgcHJlc2VudCBpbiBkYXRhLlxu4pyWIFByb2JsZW0gd2l0aCBgc2tpbGxfbGFiZWxgLlxuQmFja3RyYWNlOlxuIDEuIGRhdGEgJTw+JSBsZWZ0X2pvaW4oc2tpbGxfbGFiZWxzLCBieSA9IFwic2tpbGxfbGFiZWxcIilcbiAzLiBkcGx5cjo6OmxlZnRfam9pbi5kYXRhLmZyYW1lKC4sIHNraWxsX2xhYmVscywgYnkgPSBcInNraWxsX2xhYmVsXCIpXG4ifQ== -->
+<pre><code>Error in `left_join()`:
+! Join columns must be present in data.
+✖ Problem with `skill_label`.
+Backtrace:
+ 1. data %&lt;&gt;% left_join(skill_labels, by = &quot;skill_label&quot;)
+ 3. dplyr:::left_join.data.frame(., skill_labels, by = &quot;skill_label&quot;)</code></pre>
+<!-- rnb-output-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
 <!-- rnb-text-end -->
@@ -2941,15 +2948,15 @@ library(magrittr) # For advanced piping</code></pre>
 <!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuZGF0YSAlPiUgcHVsbChqb2JfaWQpICU+JSBuX2Rpc3RpbmN0KClcbmBgYCJ9 -->
 <pre class="r"><code>data %&gt;% pull(job_id) %&gt;% n_distinct()</code></pre>
 <!-- rnb-source-end -->
-<!-- rnb-output-begin eyJkYXRhIjoiWzFdIDE3NDU5MFxuIn0= -->
-<pre><code>[1] 174590</code></pre>
+<!-- rnb-output-begin eyJkYXRhIjoiWzFdIDY2MjE1XG4ifQ== -->
+<pre><code>[1] 66215</code></pre>
 <!-- rnb-output-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
 <!-- rnb-text-end -->
 </div>
 
-<div id="rmd-source-code">LS0tCnRpdGxlOiAnR3JlZW4gUmVnaW9uYWwgUGF0aCBwYXBlcjogRmlyc3QgcmVzdWx0cycKYXV0aG9yOiAiRGFuaWVsIFMuIEhhaW4iCmRhdGU6ICJgciBmb3JtYXQoU3lzLnRpbWUoKSwgJyVkICVCLCAlWScpYCIKb3V0cHV0OgogIGh0bWxfbm90ZWJvb2s6CiAgICBkZl9wcmludDogcGFnZWQKICAgIHRvYzogeWVzCiAgICB0b2NfZGVwdGg6IDMKICAgIHRvY19mbG9hdDogeWVzCiAgICBudW1iZXJfc2VjdGlvbnM6IHllcwogICAgY29kZV9mb2xkaW5nOiBoaWRlCiAgaHRtbF9kb2N1bWVudDoKICAgIHRvYzogeWVzCiAgICB0b2NfZGVwdGg6ICczJwogICAgZGZfcHJpbnQ6IHBhZ2VkCi0tLQoKYGBge3IsIHNldHVwLCBpbmNsdWRlPUZBTFNFfQojIyMgZ2VuZXJhbCBvcHRpb25zClN5cy5zZXRlbnYoTEFORyA9ICJlbiIpCm9wdGlvbnMoInNjaXBlbiIgPSAxMDAsICJkaWdpdHMiID0gNCkgIyBvdmVycmlkZSBSJ3MgdGVuZGVuY3kgdG8gdXNlIHNjaWVudGlmaWMgbm90YXRpb24KCiMjIyBDbGVhbiB3b3Jrc3BhY2UKcm0obGlzdD1scygpKQpncmFwaGljcy5vZmYoKQoKIyMjIExvYWQgcGFja2FnZXMgKG1heWJlIG5lZWQgdG8gYmUgaW5zdGFsbGVkIGZpcnN0KQojIFN0YW5kYXJkCmxpYnJhcnkodGlkeXZlcnNlKSAjIEdlbmVyYWwgRFMgdG9vbGtpdApsaWJyYXJ5KG1hZ3JpdHRyKSAjIEZvciBhZHZhbmNlZCBwaXBpbmcKYGBgCgojIFNraWxsIGRhdGEKCmBgYHtyfQpza2lsbF9sYWJlbHMgPC0gcmVhZF9yZHMoJy4uL3RlbXAvc2tpbGxfbGFiZWxzLnJkcycpCmBgYAoKYGBge3J9CnZhcl95ZWFyID0gYygnMjAxOCcsICcyMDIwJywgJzIwMjEnKQpgYGAKCmBgYHtyfQpkYXRhIDwtIHRpYmJsZSgpCgpmb3IoaSBpbiBsZW5ndGgodmFyX3llYXIpKXsKICBkYXRhICU+JSBiaW5kX3Jvd3MocmVhZF9yZHMocGFzdGUwKCcuLi90ZW1wL2xpc3Rfc2tpbGxzXycsIHZhcl95ZWFyW2ldLCAnLnJkcycpKSAlPiUgbXV0YXRlKHllYXIgPSB2YXJfeWVhcltpXSkpCn0KCmRhdGEgJTw+JSBsZWZ0X2pvaW4oc2tpbGxfbGFiZWxzLCBieSA9ICdza2lsbF9sYWJlbCcpCmBgYAoKCmBgYHtyfQpkYXRhICU+JSBwdWxsKGpvYl9pZCkgJT4lIG5fZGlzdGluY3QoKQpgYGAKCmBgYHtyfQpkYXRhICU+JSBjb3VudChza2lsbF9sYWJlbCwgc29ydCA9IFRSVUUpICU+JSBoZWFkKDEwMCkKYGBgCgoKCg==</div>
+<div id="rmd-source-code">LS0tCnRpdGxlOiAnR3JlZW4gUmVnaW9uYWwgUGF0aCBwYXBlcjogRmlyc3QgcmVzdWx0cycKYXV0aG9yOiAiRGFuaWVsIFMuIEhhaW4iCmRhdGU6ICJgciBmb3JtYXQoU3lzLnRpbWUoKSwgJyVkICVCLCAlWScpYCIKb3V0cHV0OgogIGh0bWxfbm90ZWJvb2s6CiAgICBkZl9wcmludDogcGFnZWQKICAgIHRvYzogeWVzCiAgICB0b2NfZGVwdGg6IDMKICAgIHRvY19mbG9hdDogeWVzCiAgICBudW1iZXJfc2VjdGlvbnM6IHllcwogICAgY29kZV9mb2xkaW5nOiBoaWRlCiAgaHRtbF9kb2N1bWVudDoKICAgIHRvYzogeWVzCiAgICB0b2NfZGVwdGg6ICczJwogICAgZGZfcHJpbnQ6IHBhZ2VkCi0tLQoKYGBge3IsIHNldHVwLCBpbmNsdWRlPUZBTFNFfQojIyMgZ2VuZXJhbCBvcHRpb25zClN5cy5zZXRlbnYoTEFORyA9ICJlbiIpCm9wdGlvbnMoInNjaXBlbiIgPSAxMDAsICJkaWdpdHMiID0gNCkgIyBvdmVycmlkZSBSJ3MgdGVuZGVuY3kgdG8gdXNlIHNjaWVudGlmaWMgbm90YXRpb24KCiMjIyBDbGVhbiB3b3Jrc3BhY2UKcm0obGlzdD1scygpKQpncmFwaGljcy5vZmYoKQoKIyMjIExvYWQgcGFja2FnZXMgKG1heWJlIG5lZWQgdG8gYmUgaW5zdGFsbGVkIGZpcnN0KQojIFN0YW5kYXJkCmxpYnJhcnkodGlkeXZlcnNlKSAjIEdlbmVyYWwgRFMgdG9vbGtpdApsaWJyYXJ5KG1hZ3JpdHRyKSAjIEZvciBhZHZhbmNlZCBwaXBpbmcKYGBgCgojIFNraWxsIGRhdGEKCmBgYHtyfQpza2lsbF9sYWJlbHMgPC0gcmVhZF9yZHMoJy4uL3RlbXAvc2tpbGxfbGFiZWxzLnJkcycpCmBgYAoKYGBge3J9CnZhcl95ZWFyID0gJzIwMjEnCmBgYAoKYGBge3J9CmRhdGEgPC0gdGliYmxlKCkKCmZvcihpIGluIGxlbmd0aCh2YXJfeWVhcikpewogICMgaSA9IDEKICBkYXRhICU8PiUgYmluZF9yb3dzKHJlYWRfcmRzKHBhc3RlMCgnLi4vdGVtcC9saXN0X3NraWxsc18nLCB2YXJfeWVhcltpXSwgJy5yZHMnKSkgJT4lIG11dGF0ZSh5ZWFyID0gdmFyX3llYXJbaV0pKQp9CgpkYXRhICU8PiUgbGVmdF9qb2luKHNraWxsX2xhYmVscywgYnkgPSAnc2tpbGxfbGFiZWwnKQpgYGAKCgpgYGB7cn0KZGF0YSAlPiUgcHVsbChqb2JfaWQpICU+JSBuX2Rpc3RpbmN0KCkKYGBgCgpgYGB7cn0KZGF0YSAlPiUgY291bnQoc2tpbGxfbGFiZWwsIHNvcnQgPSBUUlVFKSAlPiUgaGVhZCgxMDApCmBgYAoKCgo=</div>
 
 
 </div>

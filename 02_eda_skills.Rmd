@@ -38,14 +38,15 @@ skill_labels <- read_rds('../temp/skill_labels.rds')
 ```
 
 ```{r}
-var_year = c('2018', '2020', '2021')
+var_year = '2021'
 ```
 
 ```{r}
 data <- tibble()
 
 for(i in length(var_year)){
-  data %>% bind_rows(read_rds(paste0('../temp/list_skills_', var_year[i], '.rds')) %>% mutate(year = var_year[i]))
+  # i = 1
+  data %<>% bind_rows(read_rds(paste0('../temp/list_skills_', var_year[i], '.rds')) %>% mutate(year = var_year[i]))
 }
 
 data %<>% left_join(skill_labels, by = 'skill_label')
