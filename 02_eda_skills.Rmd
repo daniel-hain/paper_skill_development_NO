@@ -38,7 +38,7 @@ skill_labels <- read_rds('../temp/skill_labels.rds')
 ```
 
 ```{r}
-var_year = c('2018', '2020')
+var_year = c('2018', '2020', '2021')
 ```
 
 ```{r}

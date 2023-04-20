@@ -118,52 +118,62 @@ rm(data)
 skill_labels <- read_rds('../temp/skill_labels.rds')
 skill_vocab <- read_rds('../temp/skill_vocab.rds')
 
-# Load stilling descriptions ----
-var_year = '2020'
+# Tryout with ngrams in labels
+skill_labels %<>%
+  unnest_ngrams(word, text, ngram_delim = ' ', n_min = 2, n = 4)  %>%
+  rename(text = word) %>%
+  distinct()
+
+
+
 
 #files = paste0('../data/job_postings/stillinger_', year, '_tekst.csv')
 #data <- read_delim(files[1], locale = locale(encoding = "UTF-8"),delim=";")
 #n = 1000; data <- data[1:n,] 
 
 data <- read_rds('../data/job_postings/dat_text_clean.rds')
-
 colnames(data) <- c('job_id', 'job_titel','job_text', 'year', 'prob', 'language')
 
-# filter for year to do it sequentially
-data %<>% filter(year == var_year,
-                 language == "no") %>%
-  mutate(text = paste(job_titel, job_text, sep = '. ')) %>%
-  select(job_id, text)
 
-# # Remove non-norwegian languages -
-# data %<>% mutate(language = text %>% cld2::detect_language()) %>% 
-#   filter(language == "no") %>%
-#   select(-language)
+year_range <- c(2002:2021)
 
-# multicore processing
-cores=detectCores()
-n_iter = 1000
-
-handlers(global = TRUE)
-handlers("progress")
-split_corpus <- split(data, seq(1, nrow(data), by = n_iter))
-
-plan(multisession, workers = cores - 1) 
-with_progress({
-  p <- progressor(steps = length(split_corpus))
-  dfs <- future_lapply(split_corpus,future.seed=TRUE, FUN=function(x) 
-  {
-    p()
-    Sys.sleep(.1)
-    process_skills(x)
+for (i in length(year_range)) {
+  
+  var_year = year_range[i]
+  
+  # filter for year to do it sequentially
+  data_year <- data %>% filter(year == var_year,
+                               language == "no") %>%
+    mutate(text = paste(job_titel, job_text, sep = '. ')) %>%
+    select(job_id, text)
+  
+  # multicore processing
+  cores= parallel::detectCores() - 1
+  n_iter = 1000
+  
+  handlers(global = TRUE)
+  handlers("progress")
+  split_corpus <- split(data_year, seq(1, nrow(data_year), by = n_iter))
+  
+  plan(multisession, workers = cores - 1) 
+  with_progress({
+    p <- progressor(steps = length(split_corpus))
+    dfs <- future_lapply(split_corpus,future.seed=TRUE, FUN=function(x) 
+    {
+      p()
+      Sys.sleep(.1)
+      process_skills(x)
+    })
   })
-})
+  
+  job_skills <- data.table::rbindlist(dfs)
+  
+  job_skills %<>% mutate(year = var_year)
+  job_skills %>% saveRDS(paste0('../temp/list_skills_', var_year, '_ngrams.rds'))
+  rm(dfs, split_corpus)
+  
+}
 
-job_skills <- data.table::rbindlist(dfs)
-
-job_skills %>% mutate(year = var_year)
-job_skills %>% saveRDS(paste0('../temp/list_skills_', var_year, '.rds'))
-rm(dfs)
 
 spacy_finalize()
 
