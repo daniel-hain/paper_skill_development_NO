@@ -84,14 +84,10 @@ process_skills <-function(data){
 }
 
 ###########################################################################################
-########################### Variable definitions
+########################### Skill_list
 ###########################################################################################
 
 stopwords_no <- tibble(word = stopwords::stopwords("no"))
-
-###########################################################################################
-########################### Skill_list
-###########################################################################################
 
 #### Skills
 data <- read_csv('../data/skills_no.csv')
@@ -137,6 +133,9 @@ rm(data)
 skill_labels <- read_rds('../temp/skill_labels.rds')
 skill_vocab <- read_rds('../temp/skill_vocab.rds')
 
+udmodel_no <- udpipe_load_model(file = '../data/models/norwegian-bokmaal-ud-2.5-191206.udpipe')
+stopwords_no <- tibble(word = stopwords::stopwords("no"))
+
 # Tryout with ngrams in labels
 skill_labels %<>%
   unnest_ngrams(word, text, ngram_delim = ' ', n_min = 2, n = 4)  %>%
@@ -147,9 +146,11 @@ data <- read_rds('../data/dat_text_clean.rds')
 colnames(data) <- c('job_id', 'job_titel','job_text', 'year', 'prob', 'language')
 
 
-year_range <- c(2002:2020)
+year_range <- c(2010:2020)
 
-for (i in length(year_range)) {
+for (i in c(1:length(year_range))) {
+  
+  print(paste0('::::: Starting annotating year', var_year, '::::::::'))
   
   var_year = year_range[i]
   
@@ -183,22 +184,7 @@ for (i in length(year_range)) {
   job_skills %>% saveRDS(paste0('../temp/list_skills_', var_year, '_ngrams.rds'))
   rm(dfs, split_corpus)
   
+  print(paste0('::::: Finished annotating year', var_year, '::::::::'))
 }
 
-
 spacy_finalize()
-
-# Some basic data adaptation and cleaning 
-
-#  data %<>% 
-#  mutate(job_id = job_id %>% as.character()) %>%
-#  # correct that sometimes stillingsnummer and id are switched
-#  mutate(prob = ifelse(grepl( x = id, pattern = "-") == T, 1, 0),
-#         id1 = ifelse(prob == 0, job_id, id),
-#         job_id = ifelse(prob == 0, id, job_id),
-#         id = id1) %>% 
-#  # merged text field
-#  mutate(text = paste(job_titel, job_text, sep = '. ')) %>%
-#  drop_na(job_id, text) %>%
-#  select(job_id, text) %>%
-#  distinct(job_id, .keep_all = TRUE)
