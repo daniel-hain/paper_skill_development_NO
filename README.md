@@ -10,7 +10,7 @@
 
 ## First EDA
 
-* Comming soon
+* First EDA to be found (::::> HERE <::::)[https://daniel-hain.github.io/paper_skill_development_NO/10_skills_eda.nb.html]
 
 
 
