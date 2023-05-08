@@ -1,0 +1,354 @@
+---
+title: 'Green Regional Path paper: First results'
+author: "Daniel S. Hain"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  html_document:
+    toc: yes
+    toc_depth: '3'
+    df_print: paged
+  html_notebook:
+    df_print: paged
+    toc: yes
+    toc_depth: 3
+    toc_float: yes
+    number_sections: yes
+    code_folding: hide
+---
+
+```{r, setup, include=FALSE}
+### general options
+Sys.setenv(LANG = "en")
+options("scipen" = 100, "digits" = 4) # override R's tendency to use scientific notation
+
+### Clean workspace
+rm(list=ls(all.names = TRUE)); gc()
+graphics.off()
+
+### Load packages (maybe need to be installed first)
+# Standard
+library(tidyverse) # General DS toolkit
+library(magrittr) # For advanced piping
+```
+
+```{r}
+## Helper function
+create_sparse_matrix <- function(i_input, j_input, weight = NULL, projection = NULL, sparse = TRUE){
+  require(Matrix)
+  
+  i_input <- factor(i_input)
+  j_input <- factor(j_input)
+  
+  if (is.null(weight)) {
+    value <- rep(1, length(i_input) )
+  } else {
+    value <- weight
+  }
+  
+  # Fill matrix
+  mat <- spMatrix(nrow = n_distinct(i_input),
+                  ncol = n_distinct(j_input),
+                  i =  as.numeric(i_input),
+                  j =  as.numeric(j_input),
+                  x = value)
+  rm(value)
+  
+  # Colnames
+  rownames(mat) <- i_input %>% levels()
+  colnames(mat) <- j_input %>% levels()
+  
+  # PRojection
+  if(projection == 'i') { mat <- tcrossprod(mat) }
+  if(projection == 'j') { mat <- crossprod(mat) }  
+  
+  # Sparsity
+  if(sparse == FALSE) { mat <- as.matrix(mat) }  
+  
+  return(mat)
+}
+```
+
+
+# Data
+
+## Load meta data
+
+```{r}
+# Hirarchy
+data_structure <- read_csv('../data/skillsHierarchy_no.csv')
+colnames(data_structure) <- colnames(data_structure) %>% str_to_lower() %>% str_replace_all('\\ ', '_')
+
+data_structure %<>% mutate(L1_skill_id = level_1_uri %>% str_remove('http://data.europa.eu/esco/skill/'),
+                           L2_skill_id = level_2_uri %>% str_remove('http://data.europa.eu/esco/skill/'),
+                           L3_skill_id = level_3_uri %>% str_remove('http://data.europa.eu/esco/skill/')) %>%
+  select(-level_1_uri, -level_2_uri, -level_3_uri)
+```
+
+```{r}
+data_skills <- read_csv('../data/skills_no.csv') %>% 
+  mutate(skill_id = conceptUri %>% str_remove('http://data.europa.eu/esco/skill/'))  %>%
+  rename(skill_label = preferredLabel) %>%
+  #select(skill_id, skill_label, skillType, reuseLevel) %>%
+  distinct(skill_label, .keep_all = TRUE)
+```
+
+```{r}
+# Labels
+skill_labels <- read_rds('../temp/skills/skill_labels.rds') %>% 
+  distinct(skill_label, .keep_all = TRUE) %>%
+  select(-text)
+```
+
+```{r}
+data_meta <- readRDS('../data/job_meta/job_meta_all.rds') %>% distinct(job_id, .keep_all = TRUE)
+```
+
+## Data skills
+
+```{r}
+skills_string <- read_rds('../temp/skills/list_complete_skills.rds') %>% 
+  distinct(job_id, skill_label, .keep_all = TRUE) %>%
+  filter(year == 2021) %>%
+  select(-word, -year) %>%
+  mutate(source = 'string') %>%
+  left_join(skill_labels %>% select(skill_id, skill_label), by = 'skill_label') %>%
+  select(job_id, skill_id, skill_label, source)
+```
+
+```{r}
+#skills_bert <- read_rds('../temp/skills/list_skills_sbert_2021.rds') 
+#skills_bert %>% filter(sim >= 0.7) %>% saveRDS('../temp/skills/list_skills_sbert_2021_small.rds')
+#skills_bert %>% slice_sample(n = 100000) %>% saveRDS('../temp/skills/list_skills_sbert_2021_sample.rds')
+#rm(skills_bert)
+```
+
+```{r}
+read_rds('../temp/skills/list_skills_sbert_2021_sample.rds') %>%
+  mutate(sim = sim %>% round(1)) %>%
+  count(sim)
+```
+
+```{r}
+skills_bert <- read_rds('../temp/skills/list_skills_sbert_2021_small.rds') %>% 
+  distinct(job_id, skill_id, .keep_all = TRUE) %>%
+  mutate(source = 'bert')
+```
+
+```{r}
+skills_bert %<>% 
+  filter(sim >= 0.8) %>%
+  left_join(skill_labels %>% select(skill_id, skill_label), by = 'skill_id') %>%
+  select(job_id, skill_id, skill_label, source)
+```
+
+```{r}
+skills_all <- skills_bert %>%
+  bind_rows(skills_string) %>%
+  add_count(job_id, skill_id) %>%
+  mutate(source = ifelse(n > 1, 'both', source)) %>%
+  distinct(job_id, skill_id, .keep_all = TRUE) %>%
+  select(-n) %>% 
+  drop_na()
+```
+
+```{r}
+rm(skills_bert, skills_string)
+```
+
+
+```{r}
+# Metadata
+skills_all %<>% 
+  inner_join(skill_labels %>% select(skill_id, skill_green, skill_it), by = 'skill_id') %>%
+  inner_join(data_meta, by = 'job_id')
+```
+
+# EDA
+
+```{r}
+add_weight_cat <- function(x, cat, group){
+  x <- x %>%
+    add_count({{cat}}, {{group}}, name = 'n_cat_group') %>%
+    add_count({{cat}}, name = 'n_cat') %>%
+    add_count({{group}}, name = 'n_group') %>%
+    mutate(weight_cat = (n_cat_group / n_group) / (n_cat / n())  )
+}
+```
+
+
+## Most popular skills
+
+```{r}
+skills_all %>% 
+  #filter(skill_it == TRUE) %>%
+  count(skill_label, sort = TRUE) %>% head(100)
+```
+
+## Most popular skills by identification method
+
+```{r}
+skills_all %>% 
+  group_by(source) %>%
+  count(skill_label, sort = TRUE) %>%
+  slice_max(order_by = n, n = 20) %>%
+  ungroup()
+```
+
+## Most popular skills by profession
+
+```{r}
+skills_all %>% 
+  add_weight_cat(cat = skill_label, group = occupation_group) %>%
+  count(occupation_group, skill_label, wt = weight_cat) %>%
+  group_by(occupation_group) %>%
+  slice_max(order_by = n, n = 10, with_ties = FALSE) %>%
+  ungroup() %>%
+  arrange(occupation_group, desc(n))
+```
+
+```{r}
+skills_all %>% 
+  add_weight_cat(cat = skill_label, group = occupation_name) %>%
+  add_count(occupation_name, name = 'n_occupation') %>%
+  count(n_occupation, occupation_name, skill_label, wt = weight_cat) %>%
+  group_by(occupation_name) %>%
+  slice_max(order_by = n, n = 10, with_ties = FALSE) %>%
+  ungroup() %>%
+  arrange(desc(n_occupation), occupation_name, desc(n))  
+```
+
+## Most popular skills by region
+
+```{r}
+skills_all %>% 
+  add_weight_cat(cat = skill_label, group = workplace_komune) %>%
+  count(workplace_komune, skill_label, wt = weight_cat) %>%
+  add_count(workplace_komune, name = 'n_komune') %>%
+  group_by(workplace_komune) %>%
+  slice_max(order_by = n, n = 10, with_ties = FALSE) %>%
+  ungroup() %>%
+  arrange(desc(n_komune), workplace_komune, desc(n))
+```
+
+```{r}
+#EXPORT
+#skills_occu %>% write_csv('../output/skills_occu_bert.csv')
+#skills_all %>% saveRDS('../output/skills_all_2021.rds')
+```
+
+# green & it
+
+## Green skills
+
+```{r}
+skills_all %>% 
+  add_weight_cat(cat = skill_label, group = skill_green) %>%
+  count(skill_green, skill_label, wt = weight_cat) %>%
+  filter(skill_green == TRUE) %>%
+  arrange(desc(n))
+```
+
+```{r}
+skills_all %>% 
+  filter(skill_green == TRUE) %>%
+  add_weight_cat(cat = skill_label, group = occupation_group) %>%
+  count(occupation_group, skill_label, wt = weight_cat) %>%
+  group_by(occupation_group) %>%
+  slice_max(order_by = n, n = 10, with_ties = FALSE) %>%
+  ungroup() %>%
+  arrange(occupation_group, desc(n))
+```
+
+
+## IT skills
+
+```{r}
+skills_all %>% 
+  add_weight_cat(cat = skill_label, group = skill_it) %>%
+  count(skill_it, skill_label, wt = weight_cat) %>%
+  filter(skill_it == TRUE) %>%
+  arrange(desc(n))
+```
+
+```{r}
+skills_all %>% 
+  filter(skill_it == TRUE) %>%
+  add_weight_cat(cat = skill_label, group = occupation_group) %>%
+  count(occupation_group, skill_label, wt = weight_cat) %>%
+  group_by(occupation_group) %>%
+  slice_max(order_by = n, n = 10, with_ties = FALSE) %>%
+  ungroup() %>%
+  arrange(occupation_group, desc(n))
+```
+
+# Skill Space
+
+## Create Relatedness matrix
+
+```{r}
+#remotes::install_github("PABalland/EconGeo", force = T)
+library(EconGeo)
+```
+
+```{r}
+mat_skills <- create_sparse_matrix(i = skills_all %>% pull(job_id),
+                                       j = skills_all %>% pull(skill_label),
+                                       weight = NULL,
+                                       projection = 'j',
+                                       sparse = FALSE) %>% 
+  relatedness(method = "cosine")
+```
+
+## Plot Skill Space
+
+```{r}
+library(tidygraph)
+library(ggraph)
+```
+
+```{r}
+list_remove <- c('Norsk', 'møbelpleiemidler', 'reparere mønstre', 'kjolesøm', 'produsere bekledningsprodukter', 'produsere stoffmøblering')
+```
+
+```{r}
+g_skills <- mat_skills %>% as_tbl_graph(directed = FALSE) %N>% 
+  filter( !(name %in% list_remove) ) %>%
+  #left_join(xxxx, by = c('name' = 'skill_label')) %>%
+  mutate(dgr = centrality_eigen(weights = weight))  %>% 
+  filter(percent_rank(dgr) >= 0.95) %E>%
+  filter(percent_rank(weight) >= 0.5) %N>%
+  mutate(com =  group_louvain(weights = weight) %>% as.character()) 
+  
+```
+
+```{r}
+g_skills %N>% as_tibble() %>% arrange(desc(dgr))
+```
+
+```{r}
+g_skills %N>% as_tibble() %>% 
+  group_by(com) %>%
+  slice_max(order_by = dgr, n = 10, with_ties = FALSE)
+```
+
+```{r}
+set.seed(1337)
+coords_skills <- g_skills %>% igraph::layout.fruchterman.reingold() %>% as_tibble()
+colnames(coords_skills) <- c("x", "y")
+```
+
+```{r, fig.height=15, fig.width=15}
+g_skills %N>%
+  ggraph(layout =  coords_skills) + 
+  geom_edge_link(aes(width = weight, alpha = weight), colour = "grey") + 
+  geom_node_point(aes(size = dgr, colour = com)) + 
+  geom_node_text(aes(label = name, size = dgr, filter = percent_rank(dgr) >= 0.5 ), repel = TRUE) +
+  theme_void() +
+  theme(legend.position = 'bottom',
+        legend.box = "vertical") +
+  labs(title = 'Industry Space: Norway (2021)',
+       subtitle = 'Nodes = ESCO Skills. Edges: Relatedness'
+    )
+```
+
+

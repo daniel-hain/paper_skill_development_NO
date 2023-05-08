@@ -2885,7 +2885,7 @@ border-radius: 0px;
 <h1 class="title toc-ignore">Green Regional Path paper: First
 results</h1>
 <h4 class="author">Daniel S. Hain</h4>
-<h4 class="date">20 April, 2023</h4>
+<h4 class="date">08 May, 2023</h4>
 
 </div>
 
@@ -2893,70 +2893,443 @@ results</h1>
 <!-- rnb-text-begin -->
 <!-- rnb-text-end -->
 <!-- rnb-text-begin -->
-<div id="skill-data" class="section level1" number="1">
-<h1><span class="header-section-number">1</span> Skill data</h1>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuIyMjIGdlbmVyYWwgb3B0aW9uc1xuU3lzLnNldGVudihMQU5HID0gXCJlblwiKVxub3B0aW9ucyhcInNjaXBlblwiID0gMTAwLCBcImRpZ2l0c1wiID0gNCkgIyBvdmVycmlkZSBSJ3MgdGVuZGVuY3kgdG8gdXNlIHNjaWVudGlmaWMgbm90YXRpb25cblxuIyMjIENsZWFuIHdvcmtzcGFjZVxucm0obGlzdD1scygpKVxuZ3JhcGhpY3Mub2ZmKClcblxuIyMjIExvYWQgcGFja2FnZXMgKG1heWJlIG5lZWQgdG8gYmUgaW5zdGFsbGVkIGZpcnN0KVxuIyBTdGFuZGFyZFxubGlicmFyeSh0aWR5dmVyc2UpICMgR2VuZXJhbCBEUyB0b29sa2l0XG5saWJyYXJ5KG1hZ3JpdHRyKSAjIEZvciBhZHZhbmNlZCBwaXBpbmdcbmBgYCJ9 -->
-<pre class="r"><code>### general options
-Sys.setenv(LANG = &quot;en&quot;)
-options(&quot;scipen&quot; = 100, &quot;digits&quot; = 4) # override R&#39;s tendency to use scientific notation
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuIyMgSGVscGVyIGZ1bmN0aW9uXG5jcmVhdGVfc3BhcnNlX21hdHJpeCA8LSBmdW5jdGlvbihpX2lucHV0LCBqX2lucHV0LCB3ZWlnaHQgPSBOVUxMLCBwcm9qZWN0aW9uID0gTlVMTCwgc3BhcnNlID0gVFJVRSl7XG4gIHJlcXVpcmUoTWF0cml4KVxuICBcbiAgaV9pbnB1dCA8LSBmYWN0b3IoaV9pbnB1dClcbiAgal9pbnB1dCA8LSBmYWN0b3Ioal9pbnB1dClcbiAgXG4gIGlmIChpcy5udWxsKHdlaWdodCkpIHtcbiAgICB2YWx1ZSA8LSByZXAoMSwgbGVuZ3RoKGlfaW5wdXQpIClcbiAgfSBlbHNlIHtcbiAgICB2YWx1ZSA8LSB3ZWlnaHRcbiAgfVxuICBcbiAgIyBGaWxsIG1hdHJpeFxuICBtYXQgPC0gc3BNYXRyaXgobnJvdyA9IG5fZGlzdGluY3QoaV9pbnB1dCksXG4gICAgICAgICAgICAgICAgICBuY29sID0gbl9kaXN0aW5jdChqX2lucHV0KSxcbiAgICAgICAgICAgICAgICAgIGkgPSAgYXMubnVtZXJpYyhpX2lucHV0KSxcbiAgICAgICAgICAgICAgICAgIGogPSAgYXMubnVtZXJpYyhqX2lucHV0KSxcbiAgICAgICAgICAgICAgICAgIHggPSB2YWx1ZSlcbiAgcm0odmFsdWUpXG4gIFxuICAjIENvbG5hbWVzXG4gIHJvd25hbWVzKG1hdCkgPC0gaV9pbnB1dCAlPiUgbGV2ZWxzKClcbiAgY29sbmFtZXMobWF0KSA8LSBqX2lucHV0ICU+JSBsZXZlbHMoKVxuICBcbiAgIyBQUm9qZWN0aW9uXG4gIGlmKHByb2plY3Rpb24gPT0gJ2knKSB7IG1hdCA8LSB0Y3Jvc3Nwcm9kKG1hdCkgfVxuICBpZihwcm9qZWN0aW9uID09ICdqJykgeyBtYXQgPC0gY3Jvc3Nwcm9kKG1hdCkgfSAgXG4gIFxuICAjIFNwYXJzaXR5XG4gIGlmKHNwYXJzZSA9PSBGQUxTRSkgeyBtYXQgPC0gYXMubWF0cml4KG1hdCkgfSAgXG4gIFxuICByZXR1cm4obWF0KVxufVxuYGBgIn0= -->
+<pre class="r"><code>## Helper function
+create_sparse_matrix &lt;- function(i_input, j_input, weight = NULL, projection = NULL, sparse = TRUE){
+  require(Matrix)
+  
+  i_input &lt;- factor(i_input)
+  j_input &lt;- factor(j_input)
+  
+  if (is.null(weight)) {
+    value &lt;- rep(1, length(i_input) )
+  } else {
+    value &lt;- weight
+  }
+  
+  # Fill matrix
+  mat &lt;- spMatrix(nrow = n_distinct(i_input),
+                  ncol = n_distinct(j_input),
+                  i =  as.numeric(i_input),
+                  j =  as.numeric(j_input),
+                  x = value)
+  rm(value)
+  
+  # Colnames
+  rownames(mat) &lt;- i_input %&gt;% levels()
+  colnames(mat) &lt;- j_input %&gt;% levels()
+  
+  # PRojection
+  if(projection == &#39;i&#39;) { mat &lt;- tcrossprod(mat) }
+  if(projection == &#39;j&#39;) { mat &lt;- crossprod(mat) }  
+  
+  # Sparsity
+  if(sparse == FALSE) { mat &lt;- as.matrix(mat) }  
+  
+  return(mat)
+}</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<div id="data" class="section level1" number="1">
+<h1><span class="header-section-number">1</span> Data</h1>
+<div id="load-meta-data" class="section level2" number="1.1">
+<h2><span class="header-section-number">1.1</span> Load meta data</h2>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuIyBIaXJhcmNoeVxuZGF0YV9zdHJ1Y3R1cmUgPC0gcmVhZF9jc3YoJy4uL2RhdGEvc2tpbGxzSGllcmFyY2h5X25vLmNzdicpXG5jb2xuYW1lcyhkYXRhX3N0cnVjdHVyZSkgPC0gY29sbmFtZXMoZGF0YV9zdHJ1Y3R1cmUpICU+JSBzdHJfdG9fbG93ZXIoKSAlPiUgc3RyX3JlcGxhY2VfYWxsKCdcXFxcICcsICdfJylcblxuZGF0YV9zdHJ1Y3R1cmUgJTw+JSBtdXRhdGUoTDFfc2tpbGxfaWQgPSBsZXZlbF8xX3VyaSAlPiUgc3RyX3JlbW92ZSgnaHR0cDovL2RhdGEuZXVyb3BhLmV1L2VzY28vc2tpbGwvJyksXG4gICAgICAgICAgICAgICAgICAgICAgICAgICBMMl9za2lsbF9pZCA9IGxldmVsXzJfdXJpICU+JSBzdHJfcmVtb3ZlKCdodHRwOi8vZGF0YS5ldXJvcGEuZXUvZXNjby9za2lsbC8nKSxcbiAgICAgICAgICAgICAgICAgICAgICAgICAgIEwzX3NraWxsX2lkID0gbGV2ZWxfM191cmkgJT4lIHN0cl9yZW1vdmUoJ2h0dHA6Ly9kYXRhLmV1cm9wYS5ldS9lc2NvL3NraWxsLycpKSAlPiVcbiAgc2VsZWN0KC1sZXZlbF8xX3VyaSwgLWxldmVsXzJfdXJpLCAtbGV2ZWxfM191cmkpXG5gYGAifQ== -->
+<pre class="r"><code># Hirarchy
+data_structure &lt;- read_csv(&#39;../data/skillsHierarchy_no.csv&#39;)
+colnames(data_structure) &lt;- colnames(data_structure) %&gt;% str_to_lower() %&gt;% str_replace_all(&#39;\\ &#39;, &#39;_&#39;)
 
-### Clean workspace
-rm(list=ls())
-graphics.off()
-
-### Load packages (maybe need to be installed first)
-# Standard
-library(tidyverse) # General DS toolkit
-library(magrittr) # For advanced piping</code></pre>
+data_structure %&lt;&gt;% mutate(L1_skill_id = level_1_uri %&gt;% str_remove(&#39;http://data.europa.eu/esco/skill/&#39;),
+                           L2_skill_id = level_2_uri %&gt;% str_remove(&#39;http://data.europa.eu/esco/skill/&#39;),
+                           L3_skill_id = level_3_uri %&gt;% str_remove(&#39;http://data.europa.eu/esco/skill/&#39;)) %&gt;%
+  select(-level_1_uri, -level_2_uri, -level_3_uri)</code></pre>
 <!-- rnb-source-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuc2tpbGxfbGFiZWxzIDwtIHJlYWRfcmRzKCcuLi90ZW1wL3NraWxsX2xhYmVscy5yZHMnKVxuYGBgIn0= -->
-<pre class="r"><code>skill_labels &lt;- read_rds(&#39;../temp/skill_labels.rds&#39;)</code></pre>
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuZGF0YV9za2lsbHMgPC0gcmVhZF9jc3YoJy4uL2RhdGEvc2tpbGxzX25vLmNzdicpICU+JSBcbiAgbXV0YXRlKHNraWxsX2lkID0gY29uY2VwdFVyaSAlPiUgc3RyX3JlbW92ZSgnaHR0cDovL2RhdGEuZXVyb3BhLmV1L2VzY28vc2tpbGwvJykpICAlPiVcbiAgcmVuYW1lKHNraWxsX2xhYmVsID0gcHJlZmVycmVkTGFiZWwpICU+JVxuICAjc2VsZWN0KHNraWxsX2lkLCBza2lsbF9sYWJlbCwgc2tpbGxUeXBlLCByZXVzZUxldmVsKSAlPiVcbiAgZGlzdGluY3Qoc2tpbGxfbGFiZWwsIC5rZWVwX2FsbCA9IFRSVUUpXG5gYGAifQ== -->
+<pre class="r"><code>data_skills &lt;- read_csv(&#39;../data/skills_no.csv&#39;) %&gt;% 
+  mutate(skill_id = conceptUri %&gt;% str_remove(&#39;http://data.europa.eu/esco/skill/&#39;))  %&gt;%
+  rename(skill_label = preferredLabel) %&gt;%
+  #select(skill_id, skill_label, skillType, reuseLevel) %&gt;%
+  distinct(skill_label, .keep_all = TRUE)</code></pre>
 <!-- rnb-source-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxudmFyX3llYXIgPSAnMjAyMSdcbmBgYCJ9 -->
-<pre class="r"><code>var_year = &#39;2021&#39;</code></pre>
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuIyBMYWJlbHNcbnNraWxsX2xhYmVscyA8LSByZWFkX3JkcygnLi4vdGVtcC9za2lsbHMvc2tpbGxfbGFiZWxzLnJkcycpICU+JSBcbiAgZGlzdGluY3Qoc2tpbGxfbGFiZWwsIC5rZWVwX2FsbCA9IFRSVUUpICU+JVxuICBzZWxlY3QoLXRleHQpXG5gYGAifQ== -->
+<pre class="r"><code># Labels
+skill_labels &lt;- read_rds(&#39;../temp/skills/skill_labels.rds&#39;) %&gt;% 
+  distinct(skill_label, .keep_all = TRUE) %&gt;%
+  select(-text)</code></pre>
 <!-- rnb-source-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuZGF0YSAlPD4lIGxlZnRfam9pbihza2lsbF9sYWJlbHMsIGJ5ID0gJ3NraWxsX2xhYmVsJylcblxuYGBgIn0= -->
-<pre class="r"><code>data %&lt;&gt;% left_join(skill_labels, by = &#39;skill_label&#39;)
-</code></pre>
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuZGF0YV9tZXRhIDwtIHJlYWRSRFMoJy4uL2RhdGEvam9iX21ldGEvam9iX21ldGFfYWxsLnJkcycpICU+JSBkaXN0aW5jdChqb2JfaWQsIC5rZWVwX2FsbCA9IFRSVUUpXG5gYGAifQ== -->
+<pre class="r"><code>data_meta &lt;- readRDS(&#39;../data/job_meta/job_meta_all.rds&#39;) %&gt;% distinct(job_id, .keep_all = TRUE)</code></pre>
 <!-- rnb-source-end -->
-<!-- rnb-output-begin eyJkYXRhIjoiRXJyb3IgaW4gYGxlZnRfam9pbigpYDpcbiEgSm9pbiBjb2x1bW5zIG11c3QgYmUgcHJlc2VudCBpbiBkYXRhLlxu4pyWIFByb2JsZW0gd2l0aCBgc2tpbGxfbGFiZWxgLlxuQmFja3RyYWNlOlxuIDEuIGRhdGEgJTw+JSBsZWZ0X2pvaW4oc2tpbGxfbGFiZWxzLCBieSA9IFwic2tpbGxfbGFiZWxcIilcbiAzLiBkcGx5cjo6OmxlZnRfam9pbi5kYXRhLmZyYW1lKC4sIHNraWxsX2xhYmVscywgYnkgPSBcInNraWxsX2xhYmVsXCIpXG4ifQ== -->
-<pre><code>Error in `left_join()`:
-! Join columns must be present in data.
-✖ Problem with `skill_label`.
-Backtrace:
- 1. data %&lt;&gt;% left_join(skill_labels, by = &quot;skill_label&quot;)
- 3. dplyr:::left_join.data.frame(., skill_labels, by = &quot;skill_label&quot;)</code></pre>
-<!-- rnb-output-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+</div>
+<div id="data-skills" class="section level2" number="1.2">
+<h2><span class="header-section-number">1.2</span> Data skills</h2>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuc2tpbGxzX3N0cmluZyA8LSByZWFkX3JkcygnLi4vdGVtcC9za2lsbHMvbGlzdF9jb21wbGV0ZV9za2lsbHMucmRzJykgJT4lIFxuICBkaXN0aW5jdChqb2JfaWQsIHNraWxsX2xhYmVsLCAua2VlcF9hbGwgPSBUUlVFKSAlPiVcbiAgZmlsdGVyKHllYXIgPT0gMjAyMSkgJT4lXG4gIHNlbGVjdCgtd29yZCwgLXllYXIpICU+JVxuICBtdXRhdGUoc291cmNlID0gJ3N0cmluZycpICU+JVxuICBsZWZ0X2pvaW4oc2tpbGxfbGFiZWxzICU+JSBzZWxlY3Qoc2tpbGxfaWQsIHNraWxsX2xhYmVsKSwgYnkgPSAnc2tpbGxfbGFiZWwnKSAlPiVcbiAgc2VsZWN0KGpvYl9pZCwgc2tpbGxfaWQsIHNraWxsX2xhYmVsLCBzb3VyY2UpXG5gYGAifQ== -->
+<pre class="r"><code>skills_string &lt;- read_rds(&#39;../temp/skills/list_complete_skills.rds&#39;) %&gt;% 
+  distinct(job_id, skill_label, .keep_all = TRUE) %&gt;%
+  filter(year == 2021) %&gt;%
+  select(-word, -year) %&gt;%
+  mutate(source = &#39;string&#39;) %&gt;%
+  left_join(skill_labels %&gt;% select(skill_id, skill_label), by = &#39;skill_label&#39;) %&gt;%
+  select(job_id, skill_id, skill_label, source)</code></pre>
+<!-- rnb-source-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuZGF0YSAlPiUgcHVsbChqb2JfaWQpICU+JSBuX2Rpc3RpbmN0KClcbmBgYCJ9 -->
-<pre class="r"><code>data %&gt;% pull(job_id) %&gt;% n_distinct()</code></pre>
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuI3NraWxsc19iZXJ0IDwtIHJlYWRfcmRzKCcuLi90ZW1wL3NraWxscy9saXN0X3NraWxsc19zYmVydF8yMDIxLnJkcycpIFxuI3NraWxsc19iZXJ0ICU+JSBmaWx0ZXIoc2ltID49IDAuNykgJT4lIHNhdmVSRFMoJy4uL3RlbXAvc2tpbGxzL2xpc3Rfc2tpbGxzX3NiZXJ0XzIwMjFfc21hbGwucmRzJylcbiNza2lsbHNfYmVydCAlPiUgc2xpY2Vfc2FtcGxlKG4gPSAxMDAwMDApICU+JSBzYXZlUkRTKCcuLi90ZW1wL3NraWxscy9saXN0X3NraWxsc19zYmVydF8yMDIxX3NhbXBsZS5yZHMnKVxuI3JtKHNraWxsc19iZXJ0KVxuYGBgIn0= -->
+<pre class="r"><code>#skills_bert &lt;- read_rds(&#39;../temp/skills/list_skills_sbert_2021.rds&#39;) 
+#skills_bert %&gt;% filter(sim &gt;= 0.7) %&gt;% saveRDS(&#39;../temp/skills/list_skills_sbert_2021_small.rds&#39;)
+#skills_bert %&gt;% slice_sample(n = 100000) %&gt;% saveRDS(&#39;../temp/skills/list_skills_sbert_2021_sample.rds&#39;)
+#rm(skills_bert)</code></pre>
 <!-- rnb-source-end -->
-<!-- rnb-output-begin eyJkYXRhIjoiWzFdIDY2MjE1XG4ifQ== -->
-<pre><code>[1] 66215</code></pre>
-<!-- rnb-output-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxucmVhZF9yZHMoJy4uL3RlbXAvc2tpbGxzL2xpc3Rfc2tpbGxzX3NiZXJ0XzIwMjFfc2FtcGxlLnJkcycpICU+JVxuICBtdXRhdGUoc2ltID0gc2ltICU+JSByb3VuZCgxKSkgJT4lXG4gIGNvdW50KHNpbSlcbmBgYCJ9 -->
+<pre class="r"><code>read_rds(&#39;../temp/skills/list_skills_sbert_2021_sample.rds&#39;) %&gt;%
+  mutate(sim = sim %&gt;% round(1)) %&gt;%
+  count(sim)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuc2tpbGxzX2JlcnQgPC0gcmVhZF9yZHMoJy4uL3RlbXAvc2tpbGxzL2xpc3Rfc2tpbGxzX3NiZXJ0XzIwMjFfc21hbGwucmRzJykgJT4lIFxuICBkaXN0aW5jdChqb2JfaWQsIHNraWxsX2lkLCAua2VlcF9hbGwgPSBUUlVFKSAlPiVcbiAgbXV0YXRlKHNvdXJjZSA9ICdiZXJ0JylcbmBgYCJ9 -->
+<pre class="r"><code>skills_bert &lt;- read_rds(&#39;../temp/skills/list_skills_sbert_2021_small.rds&#39;) %&gt;% 
+  distinct(job_id, skill_id, .keep_all = TRUE) %&gt;%
+  mutate(source = &#39;bert&#39;)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuc2tpbGxzX2JlcnQgJTw+JSBcbiAgZmlsdGVyKHNpbSA+PSAwLjgpICU+JVxuICBsZWZ0X2pvaW4oc2tpbGxfbGFiZWxzICU+JSBzZWxlY3Qoc2tpbGxfaWQsIHNraWxsX2xhYmVsKSwgYnkgPSAnc2tpbGxfaWQnKSAlPiVcbiAgc2VsZWN0KGpvYl9pZCwgc2tpbGxfaWQsIHNraWxsX2xhYmVsLCBzb3VyY2UpXG5gYGAifQ== -->
+<pre class="r"><code>skills_bert %&lt;&gt;% 
+  filter(sim &gt;= 0.8) %&gt;%
+  left_join(skill_labels %&gt;% select(skill_id, skill_label), by = &#39;skill_id&#39;) %&gt;%
+  select(job_id, skill_id, skill_label, source)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuc2tpbGxzX2FsbCA8LSBza2lsbHNfYmVydCAlPiVcbiAgYmluZF9yb3dzKHNraWxsc19zdHJpbmcpICU+JVxuICBhZGRfY291bnQoam9iX2lkLCBza2lsbF9pZCkgJT4lXG4gIG11dGF0ZShzb3VyY2UgPSBpZmVsc2UobiA+IDEsICdib3RoJywgc291cmNlKSkgJT4lXG4gIGRpc3RpbmN0KGpvYl9pZCwgc2tpbGxfaWQsIC5rZWVwX2FsbCA9IFRSVUUpICU+JVxuICBzZWxlY3QoLW4pICU+JSBcbiAgZHJvcF9uYSgpXG5gYGAifQ== -->
+<pre class="r"><code>skills_all &lt;- skills_bert %&gt;%
+  bind_rows(skills_string) %&gt;%
+  add_count(job_id, skill_id) %&gt;%
+  mutate(source = ifelse(n &gt; 1, &#39;both&#39;, source)) %&gt;%
+  distinct(job_id, skill_id, .keep_all = TRUE) %&gt;%
+  select(-n) %&gt;% 
+  drop_na()</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxucm0oc2tpbGxzX2JlcnQsIHNraWxsc19zdHJpbmcpXG5gYGAifQ== -->
+<pre class="r"><code>rm(skills_bert, skills_string)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuIyBNZXRhZGF0YVxuc2tpbGxzX2FsbCAlPD4lIFxuICBpbm5lcl9qb2luKHNraWxsX2xhYmVscyAlPiUgc2VsZWN0KHNraWxsX2lkLCBza2lsbF9ncmVlbiwgc2tpbGxfaXQpLCBieSA9ICdza2lsbF9pZCcpICU+JVxuICBpbm5lcl9qb2luKGRhdGFfbWV0YSwgYnkgPSAnam9iX2lkJylcbmBgYCJ9 -->
+<pre class="r"><code># Metadata
+skills_all %&lt;&gt;% 
+  inner_join(skill_labels %&gt;% select(skill_id, skill_green, skill_it), by = &#39;skill_id&#39;) %&gt;%
+  inner_join(data_meta, by = &#39;job_id&#39;)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+</div>
+</div>
+<div id="eda" class="section level1" number="2">
+<h1><span class="header-section-number">2</span> EDA</h1>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuYWRkX3dlaWdodF9jYXQgPC0gZnVuY3Rpb24oeCwgY2F0LCBncm91cCl7XG4gIHggPC0geCAlPiVcbiAgICBhZGRfY291bnQoe3tjYXR9fSwge3tncm91cH19LCBuYW1lID0gJ25fY2F0X2dyb3VwJykgJT4lXG4gICAgYWRkX2NvdW50KHt7Y2F0fX0sIG5hbWUgPSAnbl9jYXQnKSAlPiVcbiAgICBhZGRfY291bnQoe3tncm91cH19LCBuYW1lID0gJ25fZ3JvdXAnKSAlPiVcbiAgICBtdXRhdGUod2VpZ2h0X2NhdCA9IChuX2NhdF9ncm91cCAvIG5fZ3JvdXApIC8gKG5fY2F0IC8gbigpKSAgKVxufVxuYGBgIn0= -->
+<pre class="r"><code>add_weight_cat &lt;- function(x, cat, group){
+  x &lt;- x %&gt;%
+    add_count({{cat}}, {{group}}, name = &#39;n_cat_group&#39;) %&gt;%
+    add_count({{cat}}, name = &#39;n_cat&#39;) %&gt;%
+    add_count({{group}}, name = &#39;n_group&#39;) %&gt;%
+    mutate(weight_cat = (n_cat_group / n_group) / (n_cat / n())  )
+}</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<div id="most-popular-skills" class="section level2" number="2.1">
+<h2><span class="header-section-number">2.1</span> Most popular
+skills</h2>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuc2tpbGxzX2FsbCAlPiUgXG4gICNmaWx0ZXIoc2tpbGxfaXQgPT0gVFJVRSkgJT4lXG4gIGNvdW50KHNraWxsX2xhYmVsLCBzb3J0ID0gVFJVRSkgJT4lIGhlYWQoMTAwKVxuYGBgIn0= -->
+<pre class="r"><code>skills_all %&gt;% 
+  #filter(skill_it == TRUE) %&gt;%
+  count(skill_label, sort = TRUE) %&gt;% head(100)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+</div>
+<div id="most-popular-skills-by-identification-method" class="section level2" number="2.2">
+<h2><span class="header-section-number">2.2</span> Most popular skills
+by identification method</h2>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuc2tpbGxzX2FsbCAlPiUgXG4gIGdyb3VwX2J5KHNvdXJjZSkgJT4lXG4gIGNvdW50KHNraWxsX2xhYmVsLCBzb3J0ID0gVFJVRSkgJT4lXG4gIHNsaWNlX21heChvcmRlcl9ieSA9IG4sIG4gPSAyMCkgJT4lXG4gIHVuZ3JvdXAoKVxuYGBgIn0= -->
+<pre class="r"><code>skills_all %&gt;% 
+  group_by(source) %&gt;%
+  count(skill_label, sort = TRUE) %&gt;%
+  slice_max(order_by = n, n = 20) %&gt;%
+  ungroup()</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+</div>
+<div id="most-popular-skills-by-profession" class="section level2" number="2.3">
+<h2><span class="header-section-number">2.3</span> Most popular skills
+by profession</h2>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuc2tpbGxzX2FsbCAlPiUgXG4gIGFkZF93ZWlnaHRfY2F0KGNhdCA9IHNraWxsX2xhYmVsLCBncm91cCA9IG9jY3VwYXRpb25fZ3JvdXApICU+JVxuICBjb3VudChvY2N1cGF0aW9uX2dyb3VwLCBza2lsbF9sYWJlbCwgd3QgPSB3ZWlnaHRfY2F0KSAlPiVcbiAgZ3JvdXBfYnkob2NjdXBhdGlvbl9ncm91cCkgJT4lXG4gIHNsaWNlX21heChvcmRlcl9ieSA9IG4sIG4gPSAxMCwgd2l0aF90aWVzID0gRkFMU0UpICU+JVxuICB1bmdyb3VwKCkgJT4lXG4gIGFycmFuZ2Uob2NjdXBhdGlvbl9ncm91cCwgZGVzYyhuKSlcbmBgYCJ9 -->
+<pre class="r"><code>skills_all %&gt;% 
+  add_weight_cat(cat = skill_label, group = occupation_group) %&gt;%
+  count(occupation_group, skill_label, wt = weight_cat) %&gt;%
+  group_by(occupation_group) %&gt;%
+  slice_max(order_by = n, n = 10, with_ties = FALSE) %&gt;%
+  ungroup() %&gt;%
+  arrange(occupation_group, desc(n))</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuc2tpbGxzX2FsbCAlPiUgXG4gIGFkZF93ZWlnaHRfY2F0KGNhdCA9IHNraWxsX2xhYmVsLCBncm91cCA9IG9jY3VwYXRpb25fbmFtZSkgJT4lXG4gIGFkZF9jb3VudChvY2N1cGF0aW9uX25hbWUsIG5hbWUgPSAnbl9vY2N1cGF0aW9uJykgJT4lXG4gIGNvdW50KG5fb2NjdXBhdGlvbiwgb2NjdXBhdGlvbl9uYW1lLCBza2lsbF9sYWJlbCwgd3QgPSB3ZWlnaHRfY2F0KSAlPiVcbiAgZ3JvdXBfYnkob2NjdXBhdGlvbl9uYW1lKSAlPiVcbiAgc2xpY2VfbWF4KG9yZGVyX2J5ID0gbiwgbiA9IDEwLCB3aXRoX3RpZXMgPSBGQUxTRSkgJT4lXG4gIHVuZ3JvdXAoKSAlPiVcbiAgYXJyYW5nZShkZXNjKG5fb2NjdXBhdGlvbiksIG9jY3VwYXRpb25fbmFtZSwgZGVzYyhuKSkgIFxuYGBgIn0= -->
+<pre class="r"><code>skills_all %&gt;% 
+  add_weight_cat(cat = skill_label, group = occupation_name) %&gt;%
+  add_count(occupation_name, name = &#39;n_occupation&#39;) %&gt;%
+  count(n_occupation, occupation_name, skill_label, wt = weight_cat) %&gt;%
+  group_by(occupation_name) %&gt;%
+  slice_max(order_by = n, n = 10, with_ties = FALSE) %&gt;%
+  ungroup() %&gt;%
+  arrange(desc(n_occupation), occupation_name, desc(n))  </code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+</div>
+<div id="most-popular-skills-by-region" class="section level2" number="2.4">
+<h2><span class="header-section-number">2.4</span> Most popular skills
+by region</h2>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuc2tpbGxzX2FsbCAlPiUgXG4gIGFkZF93ZWlnaHRfY2F0KGNhdCA9IHNraWxsX2xhYmVsLCBncm91cCA9IHdvcmtwbGFjZV9rb211bmUpICU+JVxuICBjb3VudCh3b3JrcGxhY2Vfa29tdW5lLCBza2lsbF9sYWJlbCwgd3QgPSB3ZWlnaHRfY2F0KSAlPiVcbiAgYWRkX2NvdW50KHdvcmtwbGFjZV9rb211bmUsIG5hbWUgPSAnbl9rb211bmUnKSAlPiVcbiAgZ3JvdXBfYnkod29ya3BsYWNlX2tvbXVuZSkgJT4lXG4gIHNsaWNlX21heChvcmRlcl9ieSA9IG4sIG4gPSAxMCwgd2l0aF90aWVzID0gRkFMU0UpICU+JVxuICB1bmdyb3VwKCkgJT4lXG4gIGFycmFuZ2UoZGVzYyhuX2tvbXVuZSksIHdvcmtwbGFjZV9rb211bmUsIGRlc2MobikpXG5gYGAifQ== -->
+<pre class="r"><code>skills_all %&gt;% 
+  add_weight_cat(cat = skill_label, group = workplace_komune) %&gt;%
+  count(workplace_komune, skill_label, wt = weight_cat) %&gt;%
+  add_count(workplace_komune, name = &#39;n_komune&#39;) %&gt;%
+  group_by(workplace_komune) %&gt;%
+  slice_max(order_by = n, n = 10, with_ties = FALSE) %&gt;%
+  ungroup() %&gt;%
+  arrange(desc(n_komune), workplace_komune, desc(n))</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuI0VYUE9SVFxuI3NraWxsc19vY2N1ICU+JSB3cml0ZV9jc3YoJy4uL291dHB1dC9za2lsbHNfb2NjdV9iZXJ0LmNzdicpXG4jc2tpbGxzX2FsbCAlPiUgc2F2ZVJEUygnLi4vb3V0cHV0L3NraWxsc19hbGxfMjAyMS5yZHMnKVxuYGBgIn0= -->
+<pre class="r"><code>#EXPORT
+#skills_occu %&gt;% write_csv(&#39;../output/skills_occu_bert.csv&#39;)
+#skills_all %&gt;% saveRDS(&#39;../output/skills_all_2021.rds&#39;)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+</div>
+</div>
+<div id="green-it" class="section level1" number="3">
+<h1><span class="header-section-number">3</span> green &amp; it</h1>
+<div id="green-skills" class="section level2" number="3.1">
+<h2><span class="header-section-number">3.1</span> Green skills</h2>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuc2tpbGxzX2FsbCAlPiUgXG4gIGFkZF93ZWlnaHRfY2F0KGNhdCA9IHNraWxsX2xhYmVsLCBncm91cCA9IHNraWxsX2dyZWVuKSAlPiVcbiAgY291bnQoc2tpbGxfZ3JlZW4sIHNraWxsX2xhYmVsLCB3dCA9IHdlaWdodF9jYXQpICU+JVxuICBmaWx0ZXIoc2tpbGxfZ3JlZW4gPT0gVFJVRSkgJT4lXG4gIGFycmFuZ2UoZGVzYyhuKSlcbmBgYCJ9 -->
+<pre class="r"><code>skills_all %&gt;% 
+  add_weight_cat(cat = skill_label, group = skill_green) %&gt;%
+  count(skill_green, skill_label, wt = weight_cat) %&gt;%
+  filter(skill_green == TRUE) %&gt;%
+  arrange(desc(n))</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuc2tpbGxzX2FsbCAlPiUgXG4gIGZpbHRlcihza2lsbF9ncmVlbiA9PSBUUlVFKSAlPiVcbiAgYWRkX3dlaWdodF9jYXQoY2F0ID0gc2tpbGxfbGFiZWwsIGdyb3VwID0gb2NjdXBhdGlvbl9ncm91cCkgJT4lXG4gIGNvdW50KG9jY3VwYXRpb25fZ3JvdXAsIHNraWxsX2xhYmVsLCB3dCA9IHdlaWdodF9jYXQpICU+JVxuICBncm91cF9ieShvY2N1cGF0aW9uX2dyb3VwKSAlPiVcbiAgc2xpY2VfbWF4KG9yZGVyX2J5ID0gbiwgbiA9IDEwLCB3aXRoX3RpZXMgPSBGQUxTRSkgJT4lXG4gIHVuZ3JvdXAoKSAlPiVcbiAgYXJyYW5nZShvY2N1cGF0aW9uX2dyb3VwLCBkZXNjKG4pKVxuYGBgIn0= -->
+<pre class="r"><code>skills_all %&gt;% 
+  filter(skill_green == TRUE) %&gt;%
+  add_weight_cat(cat = skill_label, group = occupation_group) %&gt;%
+  count(occupation_group, skill_label, wt = weight_cat) %&gt;%
+  group_by(occupation_group) %&gt;%
+  slice_max(order_by = n, n = 10, with_ties = FALSE) %&gt;%
+  ungroup() %&gt;%
+  arrange(occupation_group, desc(n))</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+</div>
+<div id="it-skills" class="section level2" number="3.2">
+<h2><span class="header-section-number">3.2</span> IT skills</h2>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuc2tpbGxzX2FsbCAlPiUgXG4gIGFkZF93ZWlnaHRfY2F0KGNhdCA9IHNraWxsX2xhYmVsLCBncm91cCA9IHNraWxsX2l0KSAlPiVcbiAgY291bnQoc2tpbGxfaXQsIHNraWxsX2xhYmVsLCB3dCA9IHdlaWdodF9jYXQpICU+JVxuICBmaWx0ZXIoc2tpbGxfaXQgPT0gVFJVRSkgJT4lXG4gIGFycmFuZ2UoZGVzYyhuKSlcbmBgYCJ9 -->
+<pre class="r"><code>skills_all %&gt;% 
+  add_weight_cat(cat = skill_label, group = skill_it) %&gt;%
+  count(skill_it, skill_label, wt = weight_cat) %&gt;%
+  filter(skill_it == TRUE) %&gt;%
+  arrange(desc(n))</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuc2tpbGxzX2FsbCAlPiUgXG4gIGZpbHRlcihza2lsbF9pdCA9PSBUUlVFKSAlPiVcbiAgYWRkX3dlaWdodF9jYXQoY2F0ID0gc2tpbGxfbGFiZWwsIGdyb3VwID0gb2NjdXBhdGlvbl9ncm91cCkgJT4lXG4gIGNvdW50KG9jY3VwYXRpb25fZ3JvdXAsIHNraWxsX2xhYmVsLCB3dCA9IHdlaWdodF9jYXQpICU+JVxuICBncm91cF9ieShvY2N1cGF0aW9uX2dyb3VwKSAlPiVcbiAgc2xpY2VfbWF4KG9yZGVyX2J5ID0gbiwgbiA9IDEwLCB3aXRoX3RpZXMgPSBGQUxTRSkgJT4lXG4gIHVuZ3JvdXAoKSAlPiVcbiAgYXJyYW5nZShvY2N1cGF0aW9uX2dyb3VwLCBkZXNjKG4pKVxuYGBgIn0= -->
+<pre class="r"><code>skills_all %&gt;% 
+  filter(skill_it == TRUE) %&gt;%
+  add_weight_cat(cat = skill_label, group = occupation_group) %&gt;%
+  count(occupation_group, skill_label, wt = weight_cat) %&gt;%
+  group_by(occupation_group) %&gt;%
+  slice_max(order_by = n, n = 10, with_ties = FALSE) %&gt;%
+  ungroup() %&gt;%
+  arrange(occupation_group, desc(n))</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+</div>
+</div>
+<div id="skill-space" class="section level1" number="4">
+<h1><span class="header-section-number">4</span> Skill Space</h1>
+<div id="create-relatedness-matrix" class="section level2" number="4.1">
+<h2><span class="header-section-number">4.1</span> Create Relatedness
+matrix</h2>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuI3JlbW90ZXM6Omluc3RhbGxfZ2l0aHViKFwiUEFCYWxsYW5kL0Vjb25HZW9cIiwgZm9yY2UgPSBUKVxubGlicmFyeShFY29uR2VvKVxuYGBgIn0= -->
+<pre class="r"><code>#remotes::install_github(&quot;PABalland/EconGeo&quot;, force = T)
+library(EconGeo)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxubWF0X3NraWxscyA8LSBjcmVhdGVfc3BhcnNlX21hdHJpeChpID0gc2tpbGxzX2FsbCAlPiUgcHVsbChqb2JfaWQpLFxuICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgaiA9IHNraWxsc19hbGwgJT4lIHB1bGwoc2tpbGxfbGFiZWwpLFxuICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgd2VpZ2h0ID0gTlVMTCxcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHByb2plY3Rpb24gPSAnaicsXG4gICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBzcGFyc2UgPSBGQUxTRSkgJT4lIFxuICByZWxhdGVkbmVzcyhtZXRob2QgPSBcImNvc2luZVwiKVxuYGBgIn0= -->
+<pre class="r"><code>mat_skills &lt;- create_sparse_matrix(i = skills_all %&gt;% pull(job_id),
+                                       j = skills_all %&gt;% pull(skill_label),
+                                       weight = NULL,
+                                       projection = &#39;j&#39;,
+                                       sparse = FALSE) %&gt;% 
+  relatedness(method = &quot;cosine&quot;)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+</div>
+<div id="plot-skill-space" class="section level2" number="4.2">
+<h2><span class="header-section-number">4.2</span> Plot Skill Space</h2>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxubGlicmFyeSh0aWR5Z3JhcGgpXG5saWJyYXJ5KGdncmFwaClcbmBgYCJ9 -->
+<pre class="r"><code>library(tidygraph)
+library(ggraph)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxubGlzdF9yZW1vdmUgPC0gYygnTm9yc2snLCAnbcO4YmVscGxlaWVtaWRsZXInLCAncmVwYXJlcmUgbcO4bnN0cmUnLCAna2pvbGVzw7htJywgJ3Byb2R1c2VyZSBiZWtsZWRuaW5nc3Byb2R1a3RlcicsICdwcm9kdXNlcmUgc3RvZmZtw7hibGVyaW5nJylcbmBgYCJ9 -->
+<pre class="r"><code>list_remove &lt;- c(&#39;Norsk&#39;, &#39;møbelpleiemidler&#39;, &#39;reparere mønstre&#39;, &#39;kjolesøm&#39;, &#39;produsere bekledningsprodukter&#39;, &#39;produsere stoffmøblering&#39;)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuZ19za2lsbHMgPC0gbWF0X3NraWxscyAlPiUgYXNfdGJsX2dyYXBoKGRpcmVjdGVkID0gRkFMU0UpICVOPiUgXG4gIGZpbHRlciggIShuYW1lICVpbiUgbGlzdF9yZW1vdmUpICkgJT4lXG4gICNsZWZ0X2pvaW4oeHh4eCwgYnkgPSBjKCduYW1lJyA9ICdza2lsbF9sYWJlbCcpKSAlPiVcbiAgbXV0YXRlKGRnciA9IGNlbnRyYWxpdHlfZWlnZW4od2VpZ2h0cyA9IHdlaWdodCkpICAlPiUgXG4gIGZpbHRlcihwZXJjZW50X3JhbmsoZGdyKSA+PSAwLjk1KSAlRT4lXG4gIGZpbHRlcihwZXJjZW50X3Jhbmsod2VpZ2h0KSA+PSAwLjUpICVOPiVcbiAgbXV0YXRlKGNvbSA9ICBncm91cF9sb3V2YWluKHdlaWdodHMgPSB3ZWlnaHQpICU+JSBhcy5jaGFyYWN0ZXIoKSkgXG4gIFxuYGBgIn0= -->
+<pre class="r"><code>g_skills &lt;- mat_skills %&gt;% as_tbl_graph(directed = FALSE) %N&gt;% 
+  filter( !(name %in% list_remove) ) %&gt;%
+  #left_join(xxxx, by = c(&#39;name&#39; = &#39;skill_label&#39;)) %&gt;%
+  mutate(dgr = centrality_eigen(weights = weight))  %&gt;% 
+  filter(percent_rank(dgr) &gt;= 0.95) %E&gt;%
+  filter(percent_rank(weight) &gt;= 0.5) %N&gt;%
+  mutate(com =  group_louvain(weights = weight) %&gt;% as.character()) 
+  </code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuZ19za2lsbHMgJU4+JSBhc190aWJibGUoKSAlPiUgYXJyYW5nZShkZXNjKGRncikpXG5gYGAifQ== -->
+<pre class="r"><code>g_skills %N&gt;% as_tibble() %&gt;% arrange(desc(dgr))</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuZ19za2lsbHMgJU4+JSBhc190aWJibGUoKSAlPiUgXG4gIGdyb3VwX2J5KGNvbSkgJT4lXG4gIHNsaWNlX21heChvcmRlcl9ieSA9IGRnciwgbiA9IDEwLCB3aXRoX3RpZXMgPSBGQUxTRSlcbmBgYCJ9 -->
+<pre class="r"><code>g_skills %N&gt;% as_tibble() %&gt;% 
+  group_by(com) %&gt;%
+  slice_max(order_by = dgr, n = 10, with_ties = FALSE)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuc2V0LnNlZWQoMTMzNylcbmNvb3Jkc19za2lsbHMgPC0gZ19za2lsbHMgJT4lIGlncmFwaDo6bGF5b3V0LmZydWNodGVybWFuLnJlaW5nb2xkKCkgJT4lIGFzX3RpYmJsZSgpXG5jb2xuYW1lcyhjb29yZHNfc2tpbGxzKSA8LSBjKFwieFwiLCBcInlcIilcbmBgYCJ9 -->
+<pre class="r"><code>set.seed(1337)
+coords_skills &lt;- g_skills %&gt;% igraph::layout.fruchterman.reingold() %&gt;% as_tibble()
+colnames(coords_skills) &lt;- c(&quot;x&quot;, &quot;y&quot;)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuZ19za2lsbHMgJU4+JVxuICBnZ3JhcGgobGF5b3V0ID0gIGNvb3Jkc19za2lsbHMpICsgXG4gIGdlb21fZWRnZV9saW5rKGFlcyh3aWR0aCA9IHdlaWdodCwgYWxwaGEgPSB3ZWlnaHQpLCBjb2xvdXIgPSBcImdyZXlcIikgKyBcbiAgZ2VvbV9ub2RlX3BvaW50KGFlcyhzaXplID0gZGdyLCBjb2xvdXIgPSBjb20pKSArIFxuICBnZW9tX25vZGVfdGV4dChhZXMobGFiZWwgPSBuYW1lLCBzaXplID0gZGdyLCBmaWx0ZXIgPSBwZXJjZW50X3JhbmsoZGdyKSA+PSAwLjUgKSwgcmVwZWwgPSBUUlVFKSArXG4gIHRoZW1lX3ZvaWQoKSArXG4gIHRoZW1lKGxlZ2VuZC5wb3NpdGlvbiA9ICdib3R0b20nLFxuICAgICAgICBsZWdlbmQuYm94ID0gXCJ2ZXJ0aWNhbFwiKSArXG4gIGxhYnModGl0bGUgPSAnSW5kdXN0cnkgU3BhY2U6IE5vcndheSAoMjAyMSknLFxuICAgICAgIHN1YnRpdGxlID0gJ05vZGVzID0gRVNDTyBTa2lsbHMuIEVkZ2VzOiBSZWxhdGVkbmVzcydcbiAgICApXG5gYGAifQ== -->
+<pre class="r"><code>g_skills %N&gt;%
+  ggraph(layout =  coords_skills) + 
+  geom_edge_link(aes(width = weight, alpha = weight), colour = &quot;grey&quot;) + 
+  geom_node_point(aes(size = dgr, colour = com)) + 
+  geom_node_text(aes(label = name, size = dgr, filter = percent_rank(dgr) &gt;= 0.5 ), repel = TRUE) +
+  theme_void() +
+  theme(legend.position = &#39;bottom&#39;,
+        legend.box = &quot;vertical&quot;) +
+  labs(title = &#39;Industry Space: Norway (2021)&#39;,
+       subtitle = &#39;Nodes = ESCO Skills. Edges: Relatedness&#39;
+    )</code></pre>
+<!-- rnb-source-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
 <!-- rnb-text-end -->
 </div>
+</div>
 
-<div id="rmd-source-code">LS0tCnRpdGxlOiAnR3JlZW4gUmVnaW9uYWwgUGF0aCBwYXBlcjogRmlyc3QgcmVzdWx0cycKYXV0aG9yOiAiRGFuaWVsIFMuIEhhaW4iCmRhdGU6ICJgciBmb3JtYXQoU3lzLnRpbWUoKSwgJyVkICVCLCAlWScpYCIKb3V0cHV0OgogIGh0bWxfbm90ZWJvb2s6CiAgICBkZl9wcmludDogcGFnZWQKICAgIHRvYzogeWVzCiAgICB0b2NfZGVwdGg6IDMKICAgIHRvY19mbG9hdDogeWVzCiAgICBudW1iZXJfc2VjdGlvbnM6IHllcwogICAgY29kZV9mb2xkaW5nOiBoaWRlCiAgaHRtbF9kb2N1bWVudDoKICAgIHRvYzogeWVzCiAgICB0b2NfZGVwdGg6ICczJwogICAgZGZfcHJpbnQ6IHBhZ2VkCi0tLQoKYGBge3IsIHNldHVwLCBpbmNsdWRlPUZBTFNFfQojIyMgZ2VuZXJhbCBvcHRpb25zClN5cy5zZXRlbnYoTEFORyA9ICJlbiIpCm9wdGlvbnMoInNjaXBlbiIgPSAxMDAsICJkaWdpdHMiID0gNCkgIyBvdmVycmlkZSBSJ3MgdGVuZGVuY3kgdG8gdXNlIHNjaWVudGlmaWMgbm90YXRpb24KCiMjIyBDbGVhbiB3b3Jrc3BhY2UKcm0obGlzdD1scygpKQpncmFwaGljcy5vZmYoKQoKIyMjIExvYWQgcGFja2FnZXMgKG1heWJlIG5lZWQgdG8gYmUgaW5zdGFsbGVkIGZpcnN0KQojIFN0YW5kYXJkCmxpYnJhcnkodGlkeXZlcnNlKSAjIEdlbmVyYWwgRFMgdG9vbGtpdApsaWJyYXJ5KG1hZ3JpdHRyKSAjIEZvciBhZHZhbmNlZCBwaXBpbmcKYGBgCgojIFNraWxsIGRhdGEKCmBgYHtyfQpza2lsbF9sYWJlbHMgPC0gcmVhZF9yZHMoJy4uL3RlbXAvc2tpbGxfbGFiZWxzLnJkcycpCmBgYAoKYGBge3J9CnZhcl95ZWFyID0gJzIwMjEnCmBgYAoKYGBge3J9CmRhdGEgPC0gdGliYmxlKCkKCmZvcihpIGluIGxlbmd0aCh2YXJfeWVhcikpewogICMgaSA9IDEKICBkYXRhICU8PiUgYmluZF9yb3dzKHJlYWRfcmRzKHBhc3RlMCgnLi4vdGVtcC9saXN0X3NraWxsc18nLCB2YXJfeWVhcltpXSwgJy5yZHMnKSkgJT4lIG11dGF0ZSh5ZWFyID0gdmFyX3llYXJbaV0pKQp9CgpkYXRhICU8PiUgbGVmdF9qb2luKHNraWxsX2xhYmVscywgYnkgPSAnc2tpbGxfbGFiZWwnKQpgYGAKCgpgYGB7cn0KZGF0YSAlPiUgcHVsbChqb2JfaWQpICU+JSBuX2Rpc3RpbmN0KCkKYGBgCgpgYGB7cn0KZGF0YSAlPiUgY291bnQoc2tpbGxfbGFiZWwsIHNvcnQgPSBUUlVFKSAlPiUgaGVhZCgxMDApCmBgYAoKCgo=</div>
+<div id="rmd-source-code">LS0tCnRpdGxlOiAnR3JlZW4gUmVnaW9uYWwgUGF0aCBwYXBlcjogRmlyc3QgcmVzdWx0cycKYXV0aG9yOiAiRGFuaWVsIFMuIEhhaW4iCmRhdGU6ICJgciBmb3JtYXQoU3lzLnRpbWUoKSwgJyVkICVCLCAlWScpYCIKb3V0cHV0OgogIGh0bWxfZG9jdW1lbnQ6CiAgICB0b2M6IHllcwogICAgdG9jX2RlcHRoOiAnMycKICAgIGRmX3ByaW50OiBwYWdlZAogIGh0bWxfbm90ZWJvb2s6CiAgICBkZl9wcmludDogcGFnZWQKICAgIHRvYzogeWVzCiAgICB0b2NfZGVwdGg6IDMKICAgIHRvY19mbG9hdDogeWVzCiAgICBudW1iZXJfc2VjdGlvbnM6IHllcwogICAgY29kZV9mb2xkaW5nOiBoaWRlCi0tLQoKYGBge3IsIHNldHVwLCBpbmNsdWRlPUZBTFNFfQojIyMgZ2VuZXJhbCBvcHRpb25zClN5cy5zZXRlbnYoTEFORyA9ICJlbiIpCm9wdGlvbnMoInNjaXBlbiIgPSAxMDAsICJkaWdpdHMiID0gNCkgIyBvdmVycmlkZSBSJ3MgdGVuZGVuY3kgdG8gdXNlIHNjaWVudGlmaWMgbm90YXRpb24KCiMjIyBDbGVhbiB3b3Jrc3BhY2UKcm0obGlzdD1scyhhbGwubmFtZXMgPSBUUlVFKSk7IGdjKCkKZ3JhcGhpY3Mub2ZmKCkKCiMjIyBMb2FkIHBhY2thZ2VzIChtYXliZSBuZWVkIHRvIGJlIGluc3RhbGxlZCBmaXJzdCkKIyBTdGFuZGFyZApsaWJyYXJ5KHRpZHl2ZXJzZSkgIyBHZW5lcmFsIERTIHRvb2xraXQKbGlicmFyeShtYWdyaXR0cikgIyBGb3IgYWR2YW5jZWQgcGlwaW5nCmBgYAoKYGBge3J9CiMjIEhlbHBlciBmdW5jdGlvbgpjcmVhdGVfc3BhcnNlX21hdHJpeCA8LSBmdW5jdGlvbihpX2lucHV0LCBqX2lucHV0LCB3ZWlnaHQgPSBOVUxMLCBwcm9qZWN0aW9uID0gTlVMTCwgc3BhcnNlID0gVFJVRSl7CiAgcmVxdWlyZShNYXRyaXgpCiAgCiAgaV9pbnB1dCA8LSBmYWN0b3IoaV9pbnB1dCkKICBqX2lucHV0IDwtIGZhY3RvcihqX2lucHV0KQogIAogIGlmIChpcy5udWxsKHdlaWdodCkpIHsKICAgIHZhbHVlIDwtIHJlcCgxLCBsZW5ndGgoaV9pbnB1dCkgKQogIH0gZWxzZSB7CiAgICB2YWx1ZSA8LSB3ZWlnaHQKICB9CiAgCiAgIyBGaWxsIG1hdHJpeAogIG1hdCA8LSBzcE1hdHJpeChucm93ID0gbl9kaXN0aW5jdChpX2lucHV0KSwKICAgICAgICAgICAgICAgICAgbmNvbCA9IG5fZGlzdGluY3Qoal9pbnB1dCksCiAgICAgICAgICAgICAgICAgIGkgPSAgYXMubnVtZXJpYyhpX2lucHV0KSwKICAgICAgICAgICAgICAgICAgaiA9ICBhcy5udW1lcmljKGpfaW5wdXQpLAogICAgICAgICAgICAgICAgICB4ID0gdmFsdWUpCiAgcm0odmFsdWUpCiAgCiAgIyBDb2xuYW1lcwogIHJvd25hbWVzKG1hdCkgPC0gaV9pbnB1dCAlPiUgbGV2ZWxzKCkKICBjb2xuYW1lcyhtYXQpIDwtIGpfaW5wdXQgJT4lIGxldmVscygpCiAgCiAgIyBQUm9qZWN0aW9uCiAgaWYocHJvamVjdGlvbiA9PSAnaScpIHsgbWF0IDwtIHRjcm9zc3Byb2QobWF0KSB9CiAgaWYocHJvamVjdGlvbiA9PSAnaicpIHsgbWF0IDwtIGNyb3NzcHJvZChtYXQpIH0gIAogIAogICMgU3BhcnNpdHkKICBpZihzcGFyc2UgPT0gRkFMU0UpIHsgbWF0IDwtIGFzLm1hdHJpeChtYXQpIH0gIAogIAogIHJldHVybihtYXQpCn0KYGBgCgoKIyBEYXRhCgojIyBMb2FkIG1ldGEgZGF0YQoKYGBge3J9CiMgSGlyYXJjaHkKZGF0YV9zdHJ1Y3R1cmUgPC0gcmVhZF9jc3YoJy4uL2RhdGEvc2tpbGxzSGllcmFyY2h5X25vLmNzdicpCmNvbG5hbWVzKGRhdGFfc3RydWN0dXJlKSA8LSBjb2xuYW1lcyhkYXRhX3N0cnVjdHVyZSkgJT4lIHN0cl90b19sb3dlcigpICU+JSBzdHJfcmVwbGFjZV9hbGwoJ1xcICcsICdfJykKCmRhdGFfc3RydWN0dXJlICU8PiUgbXV0YXRlKEwxX3NraWxsX2lkID0gbGV2ZWxfMV91cmkgJT4lIHN0cl9yZW1vdmUoJ2h0dHA6Ly9kYXRhLmV1cm9wYS5ldS9lc2NvL3NraWxsLycpLAogICAgICAgICAgICAgICAgICAgICAgICAgICBMMl9za2lsbF9pZCA9IGxldmVsXzJfdXJpICU+JSBzdHJfcmVtb3ZlKCdodHRwOi8vZGF0YS5ldXJvcGEuZXUvZXNjby9za2lsbC8nKSwKICAgICAgICAgICAgICAgICAgICAgICAgICAgTDNfc2tpbGxfaWQgPSBsZXZlbF8zX3VyaSAlPiUgc3RyX3JlbW92ZSgnaHR0cDovL2RhdGEuZXVyb3BhLmV1L2VzY28vc2tpbGwvJykpICU+JQogIHNlbGVjdCgtbGV2ZWxfMV91cmksIC1sZXZlbF8yX3VyaSwgLWxldmVsXzNfdXJpKQpgYGAKCmBgYHtyfQpkYXRhX3NraWxscyA8LSByZWFkX2NzdignLi4vZGF0YS9za2lsbHNfbm8uY3N2JykgJT4lIAogIG11dGF0ZShza2lsbF9pZCA9IGNvbmNlcHRVcmkgJT4lIHN0cl9yZW1vdmUoJ2h0dHA6Ly9kYXRhLmV1cm9wYS5ldS9lc2NvL3NraWxsLycpKSAgJT4lCiAgcmVuYW1lKHNraWxsX2xhYmVsID0gcHJlZmVycmVkTGFiZWwpICU+JQogICNzZWxlY3Qoc2tpbGxfaWQsIHNraWxsX2xhYmVsLCBza2lsbFR5cGUsIHJldXNlTGV2ZWwpICU+JQogIGRpc3RpbmN0KHNraWxsX2xhYmVsLCAua2VlcF9hbGwgPSBUUlVFKQpgYGAKCmBgYHtyfQojIExhYmVscwpza2lsbF9sYWJlbHMgPC0gcmVhZF9yZHMoJy4uL3RlbXAvc2tpbGxzL3NraWxsX2xhYmVscy5yZHMnKSAlPiUgCiAgZGlzdGluY3Qoc2tpbGxfbGFiZWwsIC5rZWVwX2FsbCA9IFRSVUUpICU+JQogIHNlbGVjdCgtdGV4dCkKYGBgCgpgYGB7cn0KZGF0YV9tZXRhIDwtIHJlYWRSRFMoJy4uL2RhdGEvam9iX21ldGEvam9iX21ldGFfYWxsLnJkcycpICU+JSBkaXN0aW5jdChqb2JfaWQsIC5rZWVwX2FsbCA9IFRSVUUpCmBgYAoKIyMgRGF0YSBza2lsbHMKCmBgYHtyfQpza2lsbHNfc3RyaW5nIDwtIHJlYWRfcmRzKCcuLi90ZW1wL3NraWxscy9saXN0X2NvbXBsZXRlX3NraWxscy5yZHMnKSAlPiUgCiAgZGlzdGluY3Qoam9iX2lkLCBza2lsbF9sYWJlbCwgLmtlZXBfYWxsID0gVFJVRSkgJT4lCiAgZmlsdGVyKHllYXIgPT0gMjAyMSkgJT4lCiAgc2VsZWN0KC13b3JkLCAteWVhcikgJT4lCiAgbXV0YXRlKHNvdXJjZSA9ICdzdHJpbmcnKSAlPiUKICBsZWZ0X2pvaW4oc2tpbGxfbGFiZWxzICU+JSBzZWxlY3Qoc2tpbGxfaWQsIHNraWxsX2xhYmVsKSwgYnkgPSAnc2tpbGxfbGFiZWwnKSAlPiUKICBzZWxlY3Qoam9iX2lkLCBza2lsbF9pZCwgc2tpbGxfbGFiZWwsIHNvdXJjZSkKYGBgCgpgYGB7cn0KI3NraWxsc19iZXJ0IDwtIHJlYWRfcmRzKCcuLi90ZW1wL3NraWxscy9saXN0X3NraWxsc19zYmVydF8yMDIxLnJkcycpIAojc2tpbGxzX2JlcnQgJT4lIGZpbHRlcihzaW0gPj0gMC43KSAlPiUgc2F2ZVJEUygnLi4vdGVtcC9za2lsbHMvbGlzdF9za2lsbHNfc2JlcnRfMjAyMV9zbWFsbC5yZHMnKQojc2tpbGxzX2JlcnQgJT4lIHNsaWNlX3NhbXBsZShuID0gMTAwMDAwKSAlPiUgc2F2ZVJEUygnLi4vdGVtcC9za2lsbHMvbGlzdF9za2lsbHNfc2JlcnRfMjAyMV9zYW1wbGUucmRzJykKI3JtKHNraWxsc19iZXJ0KQpgYGAKCmBgYHtyfQpyZWFkX3JkcygnLi4vdGVtcC9za2lsbHMvbGlzdF9za2lsbHNfc2JlcnRfMjAyMV9zYW1wbGUucmRzJykgJT4lCiAgbXV0YXRlKHNpbSA9IHNpbSAlPiUgcm91bmQoMSkpICU+JQogIGNvdW50KHNpbSkKYGBgCgpgYGB7cn0Kc2tpbGxzX2JlcnQgPC0gcmVhZF9yZHMoJy4uL3RlbXAvc2tpbGxzL2xpc3Rfc2tpbGxzX3NiZXJ0XzIwMjFfc21hbGwucmRzJykgJT4lIAogIGRpc3RpbmN0KGpvYl9pZCwgc2tpbGxfaWQsIC5rZWVwX2FsbCA9IFRSVUUpICU+JQogIG11dGF0ZShzb3VyY2UgPSAnYmVydCcpCmBgYAoKYGBge3J9CnNraWxsc19iZXJ0ICU8PiUgCiAgZmlsdGVyKHNpbSA+PSAwLjgpICU+JQogIGxlZnRfam9pbihza2lsbF9sYWJlbHMgJT4lIHNlbGVjdChza2lsbF9pZCwgc2tpbGxfbGFiZWwpLCBieSA9ICdza2lsbF9pZCcpICU+JQogIHNlbGVjdChqb2JfaWQsIHNraWxsX2lkLCBza2lsbF9sYWJlbCwgc291cmNlKQpgYGAKCmBgYHtyfQpza2lsbHNfYWxsIDwtIHNraWxsc19iZXJ0ICU+JQogIGJpbmRfcm93cyhza2lsbHNfc3RyaW5nKSAlPiUKICBhZGRfY291bnQoam9iX2lkLCBza2lsbF9pZCkgJT4lCiAgbXV0YXRlKHNvdXJjZSA9IGlmZWxzZShuID4gMSwgJ2JvdGgnLCBzb3VyY2UpKSAlPiUKICBkaXN0aW5jdChqb2JfaWQsIHNraWxsX2lkLCAua2VlcF9hbGwgPSBUUlVFKSAlPiUKICBzZWxlY3QoLW4pICU+JSAKICBkcm9wX25hKCkKYGBgCgpgYGB7cn0Kcm0oc2tpbGxzX2JlcnQsIHNraWxsc19zdHJpbmcpCmBgYAoKCmBgYHtyfQojIE1ldGFkYXRhCnNraWxsc19hbGwgJTw+JSAKICBpbm5lcl9qb2luKHNraWxsX2xhYmVscyAlPiUgc2VsZWN0KHNraWxsX2lkLCBza2lsbF9ncmVlbiwgc2tpbGxfaXQpLCBieSA9ICdza2lsbF9pZCcpICU+JQogIGlubmVyX2pvaW4oZGF0YV9tZXRhLCBieSA9ICdqb2JfaWQnKQpgYGAKCiMgRURBCgpgYGB7cn0KYWRkX3dlaWdodF9jYXQgPC0gZnVuY3Rpb24oeCwgY2F0LCBncm91cCl7CiAgeCA8LSB4ICU+JQogICAgYWRkX2NvdW50KHt7Y2F0fX0sIHt7Z3JvdXB9fSwgbmFtZSA9ICduX2NhdF9ncm91cCcpICU+JQogICAgYWRkX2NvdW50KHt7Y2F0fX0sIG5hbWUgPSAnbl9jYXQnKSAlPiUKICAgIGFkZF9jb3VudCh7e2dyb3VwfX0sIG5hbWUgPSAnbl9ncm91cCcpICU+JQogICAgbXV0YXRlKHdlaWdodF9jYXQgPSAobl9jYXRfZ3JvdXAgLyBuX2dyb3VwKSAvIChuX2NhdCAvIG4oKSkgICkKfQpgYGAKCgojIyBNb3N0IHBvcHVsYXIgc2tpbGxzCgpgYGB7cn0Kc2tpbGxzX2FsbCAlPiUgCiAgI2ZpbHRlcihza2lsbF9pdCA9PSBUUlVFKSAlPiUKICBjb3VudChza2lsbF9sYWJlbCwgc29ydCA9IFRSVUUpICU+JSBoZWFkKDEwMCkKYGBgCgojIyBNb3N0IHBvcHVsYXIgc2tpbGxzIGJ5IGlkZW50aWZpY2F0aW9uIG1ldGhvZAoKYGBge3J9CnNraWxsc19hbGwgJT4lIAogIGdyb3VwX2J5KHNvdXJjZSkgJT4lCiAgY291bnQoc2tpbGxfbGFiZWwsIHNvcnQgPSBUUlVFKSAlPiUKICBzbGljZV9tYXgob3JkZXJfYnkgPSBuLCBuID0gMjApICU+JQogIHVuZ3JvdXAoKQpgYGAKCiMjIE1vc3QgcG9wdWxhciBza2lsbHMgYnkgcHJvZmVzc2lvbgoKYGBge3J9CnNraWxsc19hbGwgJT4lIAogIGFkZF93ZWlnaHRfY2F0KGNhdCA9IHNraWxsX2xhYmVsLCBncm91cCA9IG9jY3VwYXRpb25fZ3JvdXApICU+JQogIGNvdW50KG9jY3VwYXRpb25fZ3JvdXAsIHNraWxsX2xhYmVsLCB3dCA9IHdlaWdodF9jYXQpICU+JQogIGdyb3VwX2J5KG9jY3VwYXRpb25fZ3JvdXApICU+JQogIHNsaWNlX21heChvcmRlcl9ieSA9IG4sIG4gPSAxMCwgd2l0aF90aWVzID0gRkFMU0UpICU+JQogIHVuZ3JvdXAoKSAlPiUKICBhcnJhbmdlKG9jY3VwYXRpb25fZ3JvdXAsIGRlc2MobikpCmBgYAoKYGBge3J9CnNraWxsc19hbGwgJT4lIAogIGFkZF93ZWlnaHRfY2F0KGNhdCA9IHNraWxsX2xhYmVsLCBncm91cCA9IG9jY3VwYXRpb25fbmFtZSkgJT4lCiAgYWRkX2NvdW50KG9jY3VwYXRpb25fbmFtZSwgbmFtZSA9ICduX29jY3VwYXRpb24nKSAlPiUKICBjb3VudChuX29jY3VwYXRpb24sIG9jY3VwYXRpb25fbmFtZSwgc2tpbGxfbGFiZWwsIHd0ID0gd2VpZ2h0X2NhdCkgJT4lCiAgZ3JvdXBfYnkob2NjdXBhdGlvbl9uYW1lKSAlPiUKICBzbGljZV9tYXgob3JkZXJfYnkgPSBuLCBuID0gMTAsIHdpdGhfdGllcyA9IEZBTFNFKSAlPiUKICB1bmdyb3VwKCkgJT4lCiAgYXJyYW5nZShkZXNjKG5fb2NjdXBhdGlvbiksIG9jY3VwYXRpb25fbmFtZSwgZGVzYyhuKSkgIApgYGAKCiMjIE1vc3QgcG9wdWxhciBza2lsbHMgYnkgcmVnaW9uCgpgYGB7cn0Kc2tpbGxzX2FsbCAlPiUgCiAgYWRkX3dlaWdodF9jYXQoY2F0ID0gc2tpbGxfbGFiZWwsIGdyb3VwID0gd29ya3BsYWNlX2tvbXVuZSkgJT4lCiAgY291bnQod29ya3BsYWNlX2tvbXVuZSwgc2tpbGxfbGFiZWwsIHd0ID0gd2VpZ2h0X2NhdCkgJT4lCiAgYWRkX2NvdW50KHdvcmtwbGFjZV9rb211bmUsIG5hbWUgPSAnbl9rb211bmUnKSAlPiUKICBncm91cF9ieSh3b3JrcGxhY2Vfa29tdW5lKSAlPiUKICBzbGljZV9tYXgob3JkZXJfYnkgPSBuLCBuID0gMTAsIHdpdGhfdGllcyA9IEZBTFNFKSAlPiUKICB1bmdyb3VwKCkgJT4lCiAgYXJyYW5nZShkZXNjKG5fa29tdW5lKSwgd29ya3BsYWNlX2tvbXVuZSwgZGVzYyhuKSkKYGBgCgpgYGB7cn0KI0VYUE9SVAojc2tpbGxzX29jY3UgJT4lIHdyaXRlX2NzdignLi4vb3V0cHV0L3NraWxsc19vY2N1X2JlcnQuY3N2JykKI3NraWxsc19hbGwgJT4lIHNhdmVSRFMoJy4uL291dHB1dC9za2lsbHNfYWxsXzIwMjEucmRzJykKYGBgCgojIGdyZWVuICYgaXQKCiMjIEdyZWVuIHNraWxscwoKYGBge3J9CnNraWxsc19hbGwgJT4lIAogIGFkZF93ZWlnaHRfY2F0KGNhdCA9IHNraWxsX2xhYmVsLCBncm91cCA9IHNraWxsX2dyZWVuKSAlPiUKICBjb3VudChza2lsbF9ncmVlbiwgc2tpbGxfbGFiZWwsIHd0ID0gd2VpZ2h0X2NhdCkgJT4lCiAgZmlsdGVyKHNraWxsX2dyZWVuID09IFRSVUUpICU+JQogIGFycmFuZ2UoZGVzYyhuKSkKYGBgCgpgYGB7cn0Kc2tpbGxzX2FsbCAlPiUgCiAgZmlsdGVyKHNraWxsX2dyZWVuID09IFRSVUUpICU+JQogIGFkZF93ZWlnaHRfY2F0KGNhdCA9IHNraWxsX2xhYmVsLCBncm91cCA9IG9jY3VwYXRpb25fZ3JvdXApICU+JQogIGNvdW50KG9jY3VwYXRpb25fZ3JvdXAsIHNraWxsX2xhYmVsLCB3dCA9IHdlaWdodF9jYXQpICU+JQogIGdyb3VwX2J5KG9jY3VwYXRpb25fZ3JvdXApICU+JQogIHNsaWNlX21heChvcmRlcl9ieSA9IG4sIG4gPSAxMCwgd2l0aF90aWVzID0gRkFMU0UpICU+JQogIHVuZ3JvdXAoKSAlPiUKICBhcnJhbmdlKG9jY3VwYXRpb25fZ3JvdXAsIGRlc2MobikpCmBgYAoKCiMjIElUIHNraWxscwoKYGBge3J9CnNraWxsc19hbGwgJT4lIAogIGFkZF93ZWlnaHRfY2F0KGNhdCA9IHNraWxsX2xhYmVsLCBncm91cCA9IHNraWxsX2l0KSAlPiUKICBjb3VudChza2lsbF9pdCwgc2tpbGxfbGFiZWwsIHd0ID0gd2VpZ2h0X2NhdCkgJT4lCiAgZmlsdGVyKHNraWxsX2l0ID09IFRSVUUpICU+JQogIGFycmFuZ2UoZGVzYyhuKSkKYGBgCgpgYGB7cn0Kc2tpbGxzX2FsbCAlPiUgCiAgZmlsdGVyKHNraWxsX2l0ID09IFRSVUUpICU+JQogIGFkZF93ZWlnaHRfY2F0KGNhdCA9IHNraWxsX2xhYmVsLCBncm91cCA9IG9jY3VwYXRpb25fZ3JvdXApICU+JQogIGNvdW50KG9jY3VwYXRpb25fZ3JvdXAsIHNraWxsX2xhYmVsLCB3dCA9IHdlaWdodF9jYXQpICU+JQogIGdyb3VwX2J5KG9jY3VwYXRpb25fZ3JvdXApICU+JQogIHNsaWNlX21heChvcmRlcl9ieSA9IG4sIG4gPSAxMCwgd2l0aF90aWVzID0gRkFMU0UpICU+JQogIHVuZ3JvdXAoKSAlPiUKICBhcnJhbmdlKG9jY3VwYXRpb25fZ3JvdXAsIGRlc2MobikpCmBgYAoKIyBTa2lsbCBTcGFjZQoKIyMgQ3JlYXRlIFJlbGF0ZWRuZXNzIG1hdHJpeAoKYGBge3J9CiNyZW1vdGVzOjppbnN0YWxsX2dpdGh1YigiUEFCYWxsYW5kL0Vjb25HZW8iLCBmb3JjZSA9IFQpCmxpYnJhcnkoRWNvbkdlbykKYGBgCgpgYGB7cn0KbWF0X3NraWxscyA8LSBjcmVhdGVfc3BhcnNlX21hdHJpeChpID0gc2tpbGxzX2FsbCAlPiUgcHVsbChqb2JfaWQpLAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBqID0gc2tpbGxzX2FsbCAlPiUgcHVsbChza2lsbF9sYWJlbCksCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHdlaWdodCA9IE5VTEwsCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHByb2plY3Rpb24gPSAnaicsCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHNwYXJzZSA9IEZBTFNFKSAlPiUgCiAgcmVsYXRlZG5lc3MobWV0aG9kID0gImNvc2luZSIpCmBgYAoKIyMgUGxvdCBTa2lsbCBTcGFjZQoKYGBge3J9CmxpYnJhcnkodGlkeWdyYXBoKQpsaWJyYXJ5KGdncmFwaCkKYGBgCgpgYGB7cn0KbGlzdF9yZW1vdmUgPC0gYygnTm9yc2snLCAnbcO4YmVscGxlaWVtaWRsZXInLCAncmVwYXJlcmUgbcO4bnN0cmUnLCAna2pvbGVzw7htJywgJ3Byb2R1c2VyZSBiZWtsZWRuaW5nc3Byb2R1a3RlcicsICdwcm9kdXNlcmUgc3RvZmZtw7hibGVyaW5nJykKYGBgCgpgYGB7cn0KZ19za2lsbHMgPC0gbWF0X3NraWxscyAlPiUgYXNfdGJsX2dyYXBoKGRpcmVjdGVkID0gRkFMU0UpICVOPiUgCiAgZmlsdGVyKCAhKG5hbWUgJWluJSBsaXN0X3JlbW92ZSkgKSAlPiUKICAjbGVmdF9qb2luKHh4eHgsIGJ5ID0gYygnbmFtZScgPSAnc2tpbGxfbGFiZWwnKSkgJT4lCiAgbXV0YXRlKGRnciA9IGNlbnRyYWxpdHlfZWlnZW4od2VpZ2h0cyA9IHdlaWdodCkpICAlPiUgCiAgZmlsdGVyKHBlcmNlbnRfcmFuayhkZ3IpID49IDAuOTUpICVFPiUKICBmaWx0ZXIocGVyY2VudF9yYW5rKHdlaWdodCkgPj0gMC41KSAlTj4lCiAgbXV0YXRlKGNvbSA9ICBncm91cF9sb3V2YWluKHdlaWdodHMgPSB3ZWlnaHQpICU+JSBhcy5jaGFyYWN0ZXIoKSkgCiAgCmBgYAoKYGBge3J9Cmdfc2tpbGxzICVOPiUgYXNfdGliYmxlKCkgJT4lIGFycmFuZ2UoZGVzYyhkZ3IpKQpgYGAKCmBgYHtyfQpnX3NraWxscyAlTj4lIGFzX3RpYmJsZSgpICU+JSAKICBncm91cF9ieShjb20pICU+JQogIHNsaWNlX21heChvcmRlcl9ieSA9IGRnciwgbiA9IDEwLCB3aXRoX3RpZXMgPSBGQUxTRSkKYGBgCgpgYGB7cn0Kc2V0LnNlZWQoMTMzNykKY29vcmRzX3NraWxscyA8LSBnX3NraWxscyAlPiUgaWdyYXBoOjpsYXlvdXQuZnJ1Y2h0ZXJtYW4ucmVpbmdvbGQoKSAlPiUgYXNfdGliYmxlKCkKY29sbmFtZXMoY29vcmRzX3NraWxscykgPC0gYygieCIsICJ5IikKYGBgCgpgYGB7ciwgZmlnLmhlaWdodD0xNSwgZmlnLndpZHRoPTE1fQpnX3NraWxscyAlTj4lCiAgZ2dyYXBoKGxheW91dCA9ICBjb29yZHNfc2tpbGxzKSArIAogIGdlb21fZWRnZV9saW5rKGFlcyh3aWR0aCA9IHdlaWdodCwgYWxwaGEgPSB3ZWlnaHQpLCBjb2xvdXIgPSAiZ3JleSIpICsgCiAgZ2VvbV9ub2RlX3BvaW50KGFlcyhzaXplID0gZGdyLCBjb2xvdXIgPSBjb20pKSArIAogIGdlb21fbm9kZV90ZXh0KGFlcyhsYWJlbCA9IG5hbWUsIHNpemUgPSBkZ3IsIGZpbHRlciA9IHBlcmNlbnRfcmFuayhkZ3IpID49IDAuNSApLCByZXBlbCA9IFRSVUUpICsKICB0aGVtZV92b2lkKCkgKwogIHRoZW1lKGxlZ2VuZC5wb3NpdGlvbiA9ICdib3R0b20nLAogICAgICAgIGxlZ2VuZC5ib3ggPSAidmVydGljYWwiKSArCiAgbGFicyh0aXRsZSA9ICdJbmR1c3RyeSBTcGFjZTogTm9yd2F5ICgyMDIxKScsCiAgICAgICBzdWJ0aXRsZSA9ICdOb2RlcyA9IEVTQ08gU2tpbGxzLiBFZGdlczogUmVsYXRlZG5lc3MnCiAgICApCmBgYAoKCg==</div>
 
 
 </div>

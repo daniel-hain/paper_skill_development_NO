@@ -13,7 +13,6 @@ library(data.table)
 library(future.apply)
 library(progressr)
 
-
 library(udpipe)
 udmodel_no <- udpipe_download_model(language = "norwegian-bokmaal")
 udmodel_no %>% saveRDS('../data/udmodel_no.rds')
