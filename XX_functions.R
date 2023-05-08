@@ -56,31 +56,3 @@ process_skills <-function(data){
     inner_join(skill_labels %>% select(text, skill_label), by = c('word' = 'text'))
 }
 
-
-# Function to do the lemmatization
-text_lemmatize <- function(x, stopwords = tidytext::stop_words, vocab = NULL){
-  # requires columns: doc_id, text
-  x <- udpipe_annotate(object = udmodel_no, x = x$text, doc_id = x$doc_id, tagger = "default", parser = "none") %>%
-    #spacy_parse(lemma = TRUE, pos = FALSE, tag = FALSE, entity = FALSE, dependency = FALSE, nounphrase = FALSE) %>% # Note: Dont use spacy anymore
-    as.data.frame() %>% 
-    select(doc_id, lemma) %>%
-    as_tibble() %>%
-    anti_join(stopwords, by = c('lemma' = 'word')) 
-  
-  if(!is.null(vocab)){x <- x %>% semi_join(vocab, by = c('lemma' = 'word')) }
-  
-  x %>%
-    group_by(doc_id) %>% 
-    summarise(text  = paste(lemma, collapse =" ")) 
-}
-
-# function to wrapp all
-process_skills <-function(data){
-  data %>% select(job_id, text) %>% 
-    mutate(text = text %>% text_preprocess() ) %>%
-    rename(doc_id = job_id) %>%
-    lemmatize_ud(stopwords = stopwords_no, vocab = skill_vocab) %>%
-    rename(job_id = doc_id) %>%
-    unnest_ngrams(word, text, ngram_delim = ' ', n_min = 1, n = 4) %>%
-    inner_join(skill_labels %>% select(text, skill_label), by = c('word' = 'text'))
-}
